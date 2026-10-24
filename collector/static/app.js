@@ -213,10 +213,12 @@
         var search = document.getElementById("search-input").value.trim();
         var tracker = document.getElementById("tracker-filter").value;
         var privacy = document.getElementById("privacy-filter").value;
+        var hideDeleted = document.getElementById("hide-deleted").checked;
 
         if (search) params.set("search", search);
         if (tracker) params.set("tracker", tracker);
         if (privacy) params.set("privacy", privacy);
+        if (hideDeleted) params.set("show_deleted", "false");
         params.set("sort", currentSort);
         params.set("order", currentOrder);
         params.set("page", torrentsPage);
@@ -320,6 +322,10 @@
         loadTorrents();
     });
     document.getElementById("privacy-filter").addEventListener("change", function () {
+        torrentsPage = 1;
+        loadTorrents();
+    });
+    document.getElementById("hide-deleted").addEventListener("change", function () {
         torrentsPage = 1;
         loadTorrents();
     });

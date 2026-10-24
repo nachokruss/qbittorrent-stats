@@ -197,6 +197,24 @@ h1 {
     min-width: 200px;
 }
 
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 0.25rem 0.5rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+    min-width: auto;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
 /* --------------------------------------------------------------------------
    Tables
    -------------------------------------------------------------------------- */
@@ -212,6 +230,38 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+}
+
+#torrents-table {
+    table-layout: fixed;
+}
+
+#torrents-table th[data-sort="name"] {
+    width: 30%;
+}
+
+#torrents-table th[data-sort="tracker_group"] {
+    width: 12%;
+}
+
+#torrents-table th[data-sort="privacy"] {
+    width: 10%;
+}
+
+#torrents-table th[data-sort="last_state"] {
+    width: 10%;
+}
+
+#torrents-table th[data-sort="uploaded_gb"] {
+    width: 10%;
+}
+
+#torrents-table th[data-sort="seeding_days"] {
+    width: 10%;
+}
+
+#torrents-table th[data-sort="last_seen_at"] {
+    width: 18%;
 }
 
 thead {

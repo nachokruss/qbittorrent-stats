@@ -174,6 +174,7 @@ def api_torrents(
     tracker: str = Query("", description="Filter by tracker group"),
     privacy: str = Query("", description="Filter by privacy (public/private)"),
     state: str = Query("", description="Filter by state"),
+    show_deleted: Optional[str] = Query(None, description="Show deleted torrents: true or false"),
     sort: str = Query("name", description="Sort field: name, uploaded_gb, seeding_days, last_seen_at"),
     order: str = Query("asc", description="Sort order: asc or desc"),
     page: int = Query(1, ge=1),
@@ -195,6 +196,8 @@ def api_torrents(
     if state:
         conditions.append("t.last_state = %s")
         params.append(state)
+    if show_deleted == "false":
+        conditions.append("t.removed_at IS NULL")
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
