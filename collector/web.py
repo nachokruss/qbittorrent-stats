@@ -163,6 +163,104 @@ def api_uploads_monthly(tracker: Optional[str] = Query(None, description="Filter
     return _uploads_by_period("month", tracker)
 
 
+def _uploads_by_tracker(granularity: str):
+    """Upload data broken down by tracker group for stacked chart."""
+    intervals = {
+        "day": "30 days",
+        "week": "12 weeks",
+        "month": "6 months",
+    }
+    interval = intervals.get(granularity, "30 days")
+    label_col = f"DATE_TRUNC('%s', recorded_at) AS {granularity}" % granularity
+
+    rows = query(f"""
+        SELECT
+            {label_col},
+            tracker_group,
+            SUM(upload_delta_bytes) AS uploaded_bytes,
+            ROUND(SUM(upload_delta_bytes) / 1073741824.0, 2) AS uploaded_gb
+        FROM upload_deltas
+        WHERE recorded_at >= NOW() - INTERVAL '{interval}'
+        GROUP BY 1, 2
+        ORDER BY 1, 2
+    """)
+
+    # Get distinct tracker groups and periods
+    tracker_groups = sorted(set(r["tracker_group"] for r in rows))
+    periods = sorted(set(r[granularity] for r in rows))
+
+    # Build a map: period -> {tracker_group: uploaded_gb}
+    data_map = {}
+    for r in rows:
+        period_key = r[granularity]
+        if period_key not in data_map:
+            data_map[period_key] = {}
+        data_map[period_key][r["tracker_group"]] = r["uploaded_gb"]
+
+    # Build datasets for Chart.js
+    datasets = []
+    colors = [
+        "rgba(74, 144, 217, 0.8)",
+        "rgba(255, 99, 132, 0.8)",
+        "rgba(75, 192, 192, 0.8)",
+        "rgba(255, 159, 64, 0.8)",
+        "rgba(153, 102, 255, 0.8)",
+        "rgba(255, 205, 86, 0.8)",
+        "rgba(54, 162, 235, 0.8)",
+        "rgba(255, 99, 255, 0.8)",
+        "rgba(75, 0, 130, 0.8)",
+        "rgba(119, 136, 153, 0.8)",
+    ]
+    for i, tg in enumerate(tracker_groups):
+        color = colors[i % len(colors)]
+        datasets.append({
+            "label": tg,
+            "data": [data_map.get(p, {}).get(tg, 0) for p in periods],
+            "backgroundColor": color,
+            "borderColor": color.replace("0.8", "1"),
+            "borderWidth": 1,
+        })
+
+    # Format labels
+    label_key = granularity
+    labels = []
+    for p in periods:
+        val = p
+        if hasattr(val, "strftime"):
+            if granularity == "day":
+                labels.append(val.strftime("%b %d"))
+            elif granularity == "week":
+                labels.append(val.strftime("%b %d"))
+            else:
+                labels.append(val.strftime("%b %Y"))
+        else:
+            labels.append(str(val))
+
+    return {
+        "labels": labels,
+        "datasets": datasets,
+        "label_key": label_key,
+    }
+
+
+@app.get("/api/uploads/by-tracker/daily")
+def api_uploads_by_tracker_daily():
+    """Daily upload data broken down by tracker group."""
+    return _uploads_by_tracker("day")
+
+
+@app.get("/api/uploads/by-tracker/weekly")
+def api_uploads_by_tracker_weekly():
+    """Weekly upload data broken down by tracker group."""
+    return _uploads_by_tracker("week")
+
+
+@app.get("/api/uploads/by-tracker/monthly")
+def api_uploads_by_tracker_monthly():
+    """Monthly upload data broken down by tracker group."""
+    return _uploads_by_tracker("month")
+
+
 # ---------------------------------------------------------------------------
 # API — Torrents
 # ---------------------------------------------------------------------------

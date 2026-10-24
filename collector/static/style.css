@@ -165,6 +165,27 @@ h1 {
     border-color: #4a90d9;
 }
 
+.chart-btn-by-tracker {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-weight: 500;
+}
+
+.chart-btn-by-tracker:hover {
+    background: #f0f0f0;
+}
+
+.chart-btn-by-tracker.active {
+    background: #28a745;
+    color: #fff;
+    border-color: #28a745;
+}
+
 .chart-container {
     background: #fff;
     border-radius: 8px;

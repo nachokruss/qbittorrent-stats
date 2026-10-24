@@ -82,6 +82,7 @@
 
     var uploadChart = null;
     var chartTrackerGroupsLoaded = false;
+    var isByTrackerMode = true;
 
     document.querySelectorAll(".chart-btn").forEach(function (btn) {
         btn.addEventListener("click", function () {
@@ -90,6 +91,20 @@
             loadChart(btn.dataset.period);
         });
     });
+
+    function updateChartFilterVisibility() {
+        document.getElementById("chart-tracker-filter").style.display = isByTrackerMode ? "none" : "";
+    }
+
+    document.getElementById("chart-by-tracker-btn").addEventListener("click", function () {
+        isByTrackerMode = !isByTrackerMode;
+        this.classList.toggle("active", isByTrackerMode);
+        updateChartFilterVisibility();
+        loadChart(getActivePeriod());
+    });
+
+    // Set initial visibility
+    updateChartFilterVisibility();
 
     document.getElementById("chart-tracker-filter").addEventListener("change", function () {
         loadChart(getActivePeriod());
@@ -121,14 +136,22 @@
     }
 
     function loadChart(period) {
+        // Populate tracker dropdown on first chart load
+        populateChartTrackerFilter();
+
+        if (isByTrackerMode) {
+            loadChartByTracker(period);
+        } else {
+            loadChartTotal(period);
+        }
+    }
+
+    function loadChartTotal(period) {
         var tracker = document.getElementById("chart-tracker-filter").value;
         var params = new URLSearchParams();
         if (tracker) params.set("tracker", tracker);
         var url = "/api/uploads/" + period + (params.toString() ? "?" + params.toString() : "");
         var labelKey = period === "daily" ? "day" : period === "weekly" ? "week" : "month";
-
-        // Populate tracker dropdown on first chart load
-        populateChartTrackerFilter();
 
         fetch(url)
             .then(function (r) { return r.json(); })
@@ -167,6 +190,54 @@
             })
             .catch(function (err) {
                 console.error("Chart load failed:", err);
+            });
+    }
+
+    function loadChartByTracker(period) {
+        var url = "/api/uploads/by-tracker/" + period;
+
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (uploadChart) {
+                    uploadChart.destroy();
+                }
+
+                var ctx = document.getElementById("upload-chart").getContext("2d");
+                uploadChart = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: data.labels,
+                        datasets: data.datasets,
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                title: { display: true, text: "GB Uploaded" },
+                            },
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    footer: function (items) {
+                                        var total = items.reduce(function (sum, item) {
+                                            return sum + (item.raw || 0);
+                                        }, 0);
+                                        return "Total: " + total.toFixed(2) + " GB";
+                                    }
+                                }
+                            }
+                        },
+                    },
+                });
+            })
+            .catch(function (err) {
+                console.error("Chart by tracker load failed:", err);
             });
     }
 
