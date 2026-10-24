@@ -1,6 +1,7 @@
 """Main entry point — runs the collection loop."""
 
 import logging
+import os
 import subprocess
 import time
 
@@ -12,7 +13,9 @@ from .config import (
     INTERVAL_SECONDS,
     POSTGRES_DB,
     POSTGRES_HOST,
+    POSTGRES_PASSWORD,
     POSTGRES_PORT,
+    POSTGRES_USER,
     QB_URL,
     setup_logging,
 )
@@ -30,15 +33,23 @@ def main():
 
     # Apply any pending database migrations before starting the collector.
     # dbmate is idempotent: it only runs migrations that haven't been applied yet.
+    database_url = (
+        f"postgres://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
+        f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}?sslmode=disable"
+    )
+    env = os.environ.copy()
+    env["DATABASE_URL"] = database_url
     try:
         result = subprocess.run(
-            ["dbmate", "up"], capture_output=True, text=True, check=True
+            ["dbmate", "--migrations-dir", "/app/migrations", "up"],
+            capture_output=True, text=True, check=True, env=env
         )
         if result.stdout:
             for line in result.stdout.strip().splitlines():
                 log.info("dbmate: %s", line)
         log.info("Database migrations applied successfully")
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
+        log.error("dbmate stderr: %s", exc.stderr.strip())
         log.exception("Failed to apply database migrations")
         return
 
