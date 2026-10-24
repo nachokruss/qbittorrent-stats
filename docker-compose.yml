@@ -1,0 +1,32 @@
+services:
+  qbittorrent-stats:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qbittorrent-stats
+    restart: unless-stopped
+
+    environment:
+      QB_URL: "http://qbittorrent:30024"
+      QB_USERNAME: "admin"
+
+      INTERVAL_SECONDS: "900"
+      TRACKER_REFRESH_SECONDS: "86400"
+
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: "qbittorrent_stats"
+      POSTGRES_USER: "qbittorrent_stats"
+
+      TZ: "America/Argentina/Buenos_Aires"
+
+    networks:
+      - ix-qbittorrent_default
+      - ix-postgres_default
+
+networks:
+  ix-qbittorrent_default:
+    external: true
+
+  ix-postgres_default:
+    external: true
