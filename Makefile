@@ -1,4 +1,4 @@
-.PHONY: test lint build run clean help docker-login docker-build docker-push docker-deploy up down logs
+.PHONY: test lint build run clean help docker-login docker-build docker-push docker-deploy up down logs db-dump db-load db-dump-load db-clean
 
 PYTHON := .venv/bin/python
 VERSION := $(shell cat VERSION)
@@ -48,4 +48,41 @@ clean: ## Remove build artifacts and cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 	rm -rf .pytest_cache .coverage htmlcov/
+
+# Database dump/load targets
+# Requires pg_dump and psql in PATH (install postgresql-client if needed)
+# Set TRUENAS_POSTGRES_* variables in your .env file
+
+db-dump: ## Dump the TrueNAS PostgreSQL database to dump.sql
+	@ [ -f .env ] && export $$(grep -v '^#' .env | xargs) || { echo "Error: .env file not found"; exit 1; }
+	@echo "Dumping database from TrueNAS ($(TRUENAS_POSTGRES_HOST):$(TRUENAS_POSTGRES_PORT))..."
+	PGPASSWORD="$$TRUENAS_POSTGRES_PASSWORD" pg_dump \
+		-h "$$TRUENAS_POSTGRES_HOST" \
+		-p "$$TRUENAS_POSTGRES_PORT" \
+		-U "$$TRUENAS_POSTGRES_USER" \
+		d "$$TRUENAS_POSTGRES_DB" \
+		--no-owner --no-acl --clean --if-exists \
+		> dump.sql
+	@echo "Dump saved to dump.sql ($$(wc -l < dump.sql) lines)"
+
+db-load: ## Load dump.sql into the local PostgreSQL container
+	@ [ -f dump.sql ] || { echo "Error: dump.sql not found. Run 'make db-dump' first."; exit 1; }
+	@ [ -f .env ] && export $$(grep -v '^#' .env | xargs) || { echo "Error: .env file not found"; exit 1; }
+	@echo "Loading dump into local database (qbittorrent-stats-db)..."
+	PGPASSWORD="$$POSTGRES_PASSWORD" psql \
+		-h "localhost" \
+		-p "5432" \
+		-U "$$POSTGRES_USER" \
+		d "$$POSTGRES_DB" \
+		< dump.sql
+	@echo "Database loaded successfully."
+
+db-dump-load: db-dump db-load ## Dump from TrueNAS and load into local database in one step
+
+db-clean: ## Reset the local PostgreSQL database (drops and recreates the volume)
+	@echo "Stopping local services..."
+	docker-compose down
+	@echo "Removing PostgreSQL volume..."
+	docker volume rm -f qbittorrent-stats_postgres_data
+	@echo "Database volume removed. Run 'make up' to start fresh."
 
