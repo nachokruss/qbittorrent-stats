@@ -175,6 +175,7 @@ def api_torrents(
     privacy: str = Query("", description="Filter by privacy (public/private)"),
     state: str = Query("", description="Filter by state"),
     show_deleted: Optional[str] = Query(None, description="Show deleted torrents: true or false"),
+    last_seen: str = Query("15d", description="Last seen range: 15d, 1m, 3m, 1y, all"),
     sort: str = Query("name", description="Sort field: name, uploaded_gb, seeding_days, last_seen_at"),
     order: str = Query("asc", description="Sort order: asc or desc"),
     page: int = Query(1, ge=1),
@@ -198,6 +199,17 @@ def api_torrents(
         params.append(state)
     if show_deleted == "false":
         conditions.append("t.removed_at IS NULL")
+    if last_seen and last_seen != "all":
+        interval_map = {
+            "15d": "15 days",
+            "1m": "1 month",
+            "3m": "3 months",
+            "1y": "1 year",
+        }
+        interval_str = interval_map.get(last_seen)
+        if interval_str:
+            conditions.append("t.last_seen_at >= NOW() - (%s)::interval")
+            params.append(interval_str)
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
@@ -217,7 +229,7 @@ def api_torrents(
         FROM torrents t
         LEFT JOIN torrent_upload_totals tut ON tut.torrent_hash = t.torrent_hash
         {where_clause}
-        ORDER BY {sort_field} {order_dir}, t.name ASC
+        ORDER BY {sort_field} {order_dir}, t.name ASC, t.removed_at IS NULL DESC
         LIMIT %s OFFSET %s
     """, params + [page_size, offset])
 

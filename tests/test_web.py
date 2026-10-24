@@ -315,6 +315,66 @@ class TestTorrents:
 
         assert response.status_code == 200
 
+    def test_last_seen_filter_15d(self):
+        with patch("collector.web.query") as mock_query:
+            mock_query.side_effect = [
+                [],
+                [{"total": 0}],
+            ]
+            response = TestClient(app).get("/api/torrents?last_seen=15d")
+
+        assert response.status_code == 200
+
+    def test_last_seen_filter_1m(self):
+        with patch("collector.web.query") as mock_query:
+            mock_query.side_effect = [
+                [],
+                [{"total": 0}],
+            ]
+            response = TestClient(app).get("/api/torrents?last_seen=1m")
+
+        assert response.status_code == 200
+
+    def test_last_seen_filter_3m(self):
+        with patch("collector.web.query") as mock_query:
+            mock_query.side_effect = [
+                [],
+                [{"total": 0}],
+            ]
+            response = TestClient(app).get("/api/torrents?last_seen=3m")
+
+        assert response.status_code == 200
+
+    def test_last_seen_filter_1y(self):
+        with patch("collector.web.query") as mock_query:
+            mock_query.side_effect = [
+                [],
+                [{"total": 0}],
+            ]
+            response = TestClient(app).get("/api/torrents?last_seen=1y")
+
+        assert response.status_code == 200
+
+    def test_last_seen_filter_all(self):
+        with patch("collector.web.query") as mock_query:
+            mock_query.side_effect = [
+                [],
+                [{"total": 0}],
+            ]
+            response = TestClient(app).get("/api/torrents?last_seen=all")
+
+        assert response.status_code == 200
+
+    def test_last_seen_default_is_15d(self):
+        with patch("collector.web.query") as mock_query:
+            mock_query.side_effect = [
+                [],
+                [{"total": 0}],
+            ]
+            response = TestClient(app).get("/api/torrents")
+
+        assert response.status_code == 200
+
 
 # ---------------------------------------------------------------------------
 # Trackers
