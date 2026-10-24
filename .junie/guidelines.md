@@ -7,18 +7,18 @@ This is a Python package that collects qBittorrent statistics and stores them in
 ## Architecture
 
 - **collector/** — Python package with modular code:
-  - `__main__.py` — Entry point; runs the collection loop.
+  - `__main__.py` — Entry point; runs dbmate migrations, then the collection loop.
   - `config.py` — Environment variable configuration and logging setup.
   - `utils.py` — Helper functions: tracker classification, state normalization, magnet URIs.
   - `qbittorrent.py` — HTTP API client for qBittorrent.
-  - `database.py` — PostgreSQL connection, schema initialization, and queries.
+  - `database.py` — PostgreSQL connection and queries.
   - `trackers.py` — Tracker refresh logic and upsert operations.
   - `torrent.py` — Core torrent processing: upserts, snapshots, upload deltas.
   - `collector.py` — Collection orchestration; runs one full cycle.
+- **migrations/** — dbmate SQL migration files for database schema changes.
 - **tests/** — Pytest-based unit tests with mocked external dependencies.
 - **Makefile** — Build and development targets: test, lint, build, run, clean.
-- **schema.sql** — Database schema with tables and SQL views. Applied on startup.
-- **Dockerfile** — Python 3.12 slim image with `requests` and `psycopg` dependencies.
+- **Dockerfile** — Python 3.12 slim image with `requests`, `psycopg`, and `dbmate` dependencies.
 - **docker-compose.yml** — Deployment config; connects to external TrueNAS networks.
 
 ## Data Flow
@@ -44,14 +44,24 @@ This is a Python package that collects qBittorrent statistics and stores them in
 - **Dependencies** — Only `requests` and `psycopg` (PostgreSQL adapter). Keep dependencies minimal.
 - **Logging** — Use the `log` logger throughout. No print statements.
 - **Error handling** — Catch exceptions per-torrent, log them, and rollback the transaction. Never let one bad torrent crash the collector.
-- **SQL** — Use parameterized queries. Schema changes go in `schema.sql` using `IF NOT EXISTS` patterns.
+- **SQL** — Use parameterized queries. Schema changes go in `migrations/` as dbmate migration files.
 - **No hardcoded credentials** — All configuration via environment variables read at module level.
 
 ## Database Schema
 
 Core tables: `torrents`, `torrent_trackers`, `snapshots`, `upload_deltas`, `collector_runs`, `torrent_events`.
 
-Views provide ready-to-query summaries: daily/weekly/monthly uploads, totals by tracker group, inactive torrents, etc. See `schema.sql` for the full definition.
+Views provide ready-to-query summaries: daily/weekly/monthly uploads, totals by tracker group, inactive torrents, etc. See `migrations/` for the schema definition.
+
+## Database Migrations
+
+The project uses **dbmate** for database migrations. Migrations are plain SQL files in the `migrations/` directory with timestamp-based filenames (e.g., `20241024120000_initial.sql`).
+
+Each migration file has two sections:
+- `-- migrate:up` — SQL to apply the migration
+- `-- migrate:down` — SQL to rollback the migration
+
+On container startup, dbmate automatically applies any pending migrations before the collector starts. It tracks applied migrations in a `schema_migrations` table, so already-applied migrations are skipped.
 
 ## Deployment
 
@@ -70,9 +80,9 @@ Edit `tracker_group_for_url()` in `collector/utils.py`. Add a new `if` block tha
 
 Set `INTERVAL_SECONDS` environment variable. Default is 900 (15 minutes).
 
-### Adding a new SQL view
+### Adding a new SQL view or schema change
 
-Append the `CREATE OR REPLACE VIEW` statement to `schema.sql`. The schema is idempotent and re-applied on every startup.
+Create a new migration file in `migrations/` with a timestamp prefix (e.g., `20241025090000_add_view.sql`). Include both `-- migrate:up` and `-- migrate:down` sections. The migration will be applied automatically on next container startup.
 
 ### Debugging
 

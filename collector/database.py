@@ -1,6 +1,4 @@
-"""Database connection and schema management."""
-
-import os
+"""Database connection and queries."""
 
 import psycopg
 from psycopg.rows import dict_row
@@ -24,26 +22,6 @@ def connect():
         password=POSTGRES_PASSWORD,
         row_factory=dict_row,
     )
-
-
-def initialize_schema(conn):
-    """
-    Apply schema.sql to the database.
-
-    The schema uses CREATE TABLE IF NOT EXISTS, so existing tables are preserved.
-    """
-    schema_path = "/app/schema.sql"
-
-    if not os.path.exists(schema_path):
-        return
-
-    with open(schema_path, "r", encoding="utf-8") as f:
-        schema = f.read()
-
-    with conn.cursor() as cur:
-        cur.execute(schema)
-
-    conn.commit()
 
 
 def get_existing_torrent(conn, torrent_hash):

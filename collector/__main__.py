@@ -1,6 +1,7 @@
 """Main entry point — runs the collection loop."""
 
 import logging
+import subprocess
 import time
 
 import psycopg
@@ -15,7 +16,7 @@ from .config import (
     QB_URL,
     setup_logging,
 )
-from .database import connect, initialize_schema
+from .database import connect
 from .qbittorrent import QBittorrentClient
 
 
@@ -27,11 +28,23 @@ def main():
     log.info("qBittorrent: %s", QB_URL)
     log.info("PostgreSQL: %s:%s/%s", POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
 
+    # Apply any pending database migrations before starting the collector.
+    # dbmate is idempotent: it only runs migrations that haven't been applied yet.
+    try:
+        result = subprocess.run(
+            ["dbmate", "up"], capture_output=True, text=True, check=True
+        )
+        if result.stdout:
+            for line in result.stdout.strip().splitlines():
+                log.info("dbmate: %s", line)
+        log.info("Database migrations applied successfully")
+    except subprocess.CalledProcessError:
+        log.exception("Failed to apply database migrations")
+        return
+
     conn = connect()
 
     try:
-        initialize_schema(conn)
-
         qb = QBittorrentClient()
         qb.login()
 

@@ -69,7 +69,9 @@ This project is designed to run as a TrueNAS app. Configure the environment vari
 
 ## Database Schema
 
-The collector creates the following tables automatically on first run:
+The collector uses **dbmate** for database migrations. On first run, it applies the initial schema automatically. Subsequent schema changes are managed via migration files in the `migrations/` directory.
+
+Tables created on first run:
 
 | Table | Purpose |
 |---|---|
@@ -134,7 +136,7 @@ WHERE tracker_group != 'Public';
 ```
 ├── collector/
 │   ├── __init__.py     # Package init
-│   ├── __main__.py     # Entry point; collection loop
+│   ├── __main__.py     # Entry point; runs migrations, then collection loop
 │   ├── config.py       # Environment variable configuration
 │   ├── utils.py        # Tracker classification, state normalization
 │   ├── qbittorrent.py  # qBittorrent HTTP API client
@@ -142,6 +144,7 @@ WHERE tracker_group != 'Public';
 │   ├── trackers.py     # Tracker refresh and upsert logic
 │   ├── torrent.py      # Core torrent processing
 │   └── collector.py    # Collection orchestration
+├── migrations/         # dbmate SQL migration files
 ├── tests/              # Pytest unit tests
 │   ├── conftest.py     # Shared fixtures
 │   ├── test_utils.py   # Utility function tests
@@ -152,7 +155,6 @@ WHERE tracker_group != 'Public';
 │   ├── test_torrent.py      # Torrent processing tests
 │   └── test_collector.py    # Collection cycle tests
 ├── Makefile            # Build and development targets
-├── schema.sql          # Database schema and views
 ├── Dockerfile          # Container build instructions
 ├── docker-compose.yml  # Deployment configuration
 └── README.md           # This file

@@ -1,11 +1,10 @@
 """Tests for collector/database.py."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from collector.database import (
     get_existing_torrent,
     get_stored_trackers,
-    initialize_schema,
     mark_missing_torrents,
 )
 
@@ -97,34 +96,3 @@ class TestMarkMissingTorrents:
         mock_cur.execute.assert_not_called()
 
 
-class TestInitializeSchema:
-    def test_applies_schema_file(self, tmp_path):
-        schema_file = tmp_path / "schema.sql"
-        schema_file.write_text("CREATE TABLE test (id INT);")
-
-        mock_conn = MagicMock()
-        mock_cur = MagicMock()
-        mock_conn.cursor.return_value.__enter__.return_value = mock_cur
-
-        with patch("collector.database.os.path.exists", return_value=True):
-            with patch("collector.database.open", MagicMock()) as mock_open:
-                mock_open.return_value.__enter__.return_value = MagicMock(
-                    read=lambda: "CREATE TABLE test (id INT);"
-                )
-                # Temporarily override schema_path
-                import collector.database as db
-
-                original_path = db.schema_path if hasattr(db, "schema_path") else None
-                initialize_schema(mock_conn)
-
-        mock_cur.execute.assert_called_once()
-        mock_conn.commit.assert_called_once()
-
-    def test_skips_when_schema_file_missing(self):
-        mock_conn = MagicMock()
-
-        with patch("collector.database.os.path.exists", return_value=False):
-            initialize_schema(mock_conn)
-
-        mock_conn.cursor.assert_not_called()
-        mock_conn.commit.assert_not_called()
