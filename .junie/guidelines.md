@@ -75,3 +75,4 @@ Set `LOG_LEVEL=DEBUG` in the environment variables. Logs go to stdout, which Tru
 - **Do not** assume the qBittorrent API is always available — handle HTTPError gracefully
 - **Do not** commit files with real credentials
 - **Do not** add heavy dependencies — keep the image small
+- **Do not** automatically commit or push changes — only commit when explicitly asked, and never push without an explicit request
