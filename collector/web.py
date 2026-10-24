@@ -208,8 +208,8 @@ def api_torrents(
         }
         interval_str = interval_map.get(last_seen)
         if interval_str:
-            conditions.append("t.last_seen_at >= NOW() - INTERVAL %s")
-            params.append(interval_str)
+            # PostgreSQL requires a literal value after INTERVAL, not a parameter
+            conditions.append(f"t.last_seen_at >= NOW() - INTERVAL '{interval_str}'")
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
