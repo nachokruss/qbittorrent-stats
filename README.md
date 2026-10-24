@@ -224,9 +224,17 @@ To deploy updates from your laptop to TrueNAS, push the Docker image to GHCR, th
 make docker-push
 ```
 
-Then in TrueNAS, change the app image to `ghcr.io/nachokruss/qbittorrent-stats:latest` and restart.
+This tags the image with both the current version (from the `VERSION` file, e.g., `1.0.0`) and `latest`.
+
+Then in TrueNAS, change the app image to `ghcr.io/nachokruss/qbittorrent-stats:1.0.0` and restart. Using a versioned tag enables TrueNAS's **Update** button — when you bump the version and push a new image, TrueNAS will detect the newer version and offer to update.
 
 The image is built for both **AMD64** (TrueNAS) and **ARM64** (Apple Silicon Macs), so it works on any architecture.
+
+### Updating to a new version
+
+1. Bump the version in the `VERSION` file (e.g., change `1.0.0` to `1.0.1`)
+2. Run `make docker-push` to build and push the new version
+3. In TrueNAS, click the **Update** button to pull and deploy the new image
 
 ### Makefile Targets
 

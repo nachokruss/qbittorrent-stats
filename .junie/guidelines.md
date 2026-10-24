@@ -115,11 +115,19 @@ Place new test files in `tests/` with the naming convention `test_<module>.py`. 
 
 ## Docker Deployment
 
-The project is deployed to GitHub Container Registry (GHCR) at `ghcr.io/nachokruss/qbittorrent-stats:latest`.
+The project is deployed to GitHub Container Registry (GHCR) at `ghcr.io/nachokruss/qbittorrent-stats`.
+
+Images are tagged with both a version number (read from the `VERSION` file, e.g., `1.0.0`) and `latest`. Using versioned tags enables TrueNAS's **Update** button — when you bump the version and push, TrueNAS detects the newer version and offers to update.
 
 To deploy, create a `.docker-token` file with a GitHub personal access token (classic) with `write:packages` scope. Fine-grained tokens may not show the "Packages" permission option for all users, so classic tokens are the reliable option. The file is gitignored and never committed.
 
-Run `make docker-push` to login, build, tag, and push the image in one step. Then restart the app in TrueNAS to pull the new image.
+Run `make docker-push` to login, build, tag, and push the image in one step. Then in TrueNAS, use the versioned tag (e.g., `ghcr.io/nachokruss/qbittorrent-stats:1.0.0`) for the app image.
+
+### Updating to a new version
+
+1. Bump the version in the `VERSION` file (e.g., `1.0.0` → `1.0.1`)
+2. Run `make docker-push` to build and push
+3. In TrueNAS, click the **Update** button to pull and deploy the new image
 
 ## What Not to Do
 
