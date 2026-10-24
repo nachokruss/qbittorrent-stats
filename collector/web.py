@@ -217,7 +217,7 @@ def api_torrents(
         FROM torrents t
         LEFT JOIN torrent_upload_totals tut ON tut.torrent_hash = t.torrent_hash
         {where_clause}
-        ORDER BY {sort_field} {order_dir}
+        ORDER BY {sort_field} {order_dir}, t.name ASC
         LIMIT %s OFFSET %s
     """, params + [page_size, offset])
 
