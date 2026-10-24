@@ -1,4 +1,4 @@
-.PHONY: test lint build run clean help docker-login docker-build docker-push docker-deploy
+.PHONY: test lint build run clean help docker-login docker-build docker-push docker-deploy up down logs
 
 PYTHON := .venv/bin/python
 VERSION := $(shell cat VERSION)
@@ -35,13 +35,17 @@ docker-push: docker-login docker-build ## Login, build multi-arch image, and pus
 
 docker-deploy: docker-push ## Alias for docker-push (build and deploy to GHCR)
 
-run: ## Run the container (requires external networks)
-	docker-compose up -d
+up: ## Start local dev environment (local DB + remote qBittorrent)
+	docker-compose up -d --build
 
-stop: ## Stop the running container
+down: ## Stop local dev environment
 	docker-compose down
+
+logs: ## View local dev logs
+	docker-compose logs -f qbittorrent-stats
 
 clean: ## Remove build artifacts and cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 	rm -rf .pytest_cache .coverage htmlcov/
+

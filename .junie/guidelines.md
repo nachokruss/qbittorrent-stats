@@ -17,9 +17,10 @@ This is a Python package that collects qBittorrent statistics and stores them in
   - `collector.py` — Collection orchestration; runs one full cycle.
 - **migrations/** — dbmate SQL migration files for database schema changes.
 - **tests/** — Pytest-based unit tests with mocked external dependencies.
-- **Makefile** — Build and development targets: test, lint, build, run, clean.
+- **Makefile** — Build and development targets: test, lint, build, run, clean, local dev.
 - **Dockerfile** — Python 3.12 slim image with `requests`, `psycopg`, and `dbmate` dependencies.
-- **docker-compose.yml** — Deployment config; connects to external TrueNAS networks.
+- **docker-compose.yml** — Local development config; reads environment variables from `.env` file.
+- **.env.example** — Template for local development environment variables.
 
 ## Data Flow
 
@@ -67,8 +68,9 @@ On container startup, dbmate automatically applies any pending migrations before
 
 - Runs as a Docker container on TrueNAS Apps
 - Connects to two external Docker networks: `ix-qbittorrent_default` and `ix-postgres_default`
-- Environment variables are configured in the TrueNAS app UI, not in docker-compose.yml
-- The `docker-compose.yml` in the repo is a reference template without passwords
+- Environment variables are configured in the TrueNAS app UI
+- The `docker-compose.yml` is used only for local development
+- Local dev credentials are stored in `.env` (gitignored); `.env.example` provides the template
 
 ## Common Tasks
 
@@ -108,10 +110,22 @@ Place new test files in `tests/` with the naming convention `test_<module>.py`. 
 - `make docker-build` — Build multi-arch image (amd64 + arm64) and push to GHCR
 - `make docker-push` — Login, build, and push to GHCR
 - `make docker-deploy` — Alias for `docker-push`
-- `make run` — Start the container via docker-compose
-- `make stop` — Stop the running container
+- `make up` — Start local dev environment (local DB + remote qBittorrent)
+- `make down` — Stop local dev environment
+- `make logs` — View local dev logs
 - `make clean` — Remove build artifacts and cache
 - `make help` — List all available targets
+
+### Local development
+
+To test locally with a local PostgreSQL database but connecting to TrueNAS qBittorrent:
+
+1. Copy `.env.example` to `.env` and edit with your TrueNAS IP and qBittorrent password
+2. Run `make up` to start both the local database and collector
+3. Run `make logs` to view the collector's output
+4. Run `make down` to stop everything
+
+The local database data persists in a Docker volume. To start fresh, delete it: `docker volume rm qbittorrent-stats_postgres_data`.
 
 ## Docker Deployment
 

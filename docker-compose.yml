@@ -1,32 +1,37 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: qbittorrent-stats-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   qbittorrent-stats:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: qbittorrent-stats
     restart: unless-stopped
-
+    depends_on:
+      - postgres
     environment:
-      QB_URL: "http://qbittorrent:30024"
-      QB_USERNAME: "admin"
+      QB_URL: ${QB_URL}
+      QB_USERNAME: ${QB_USERNAME}
+      QB_PASSWORD: ${QB_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      INTERVAL_SECONDS: ${INTERVAL_SECONDS}
+      TRACKER_REFRESH_SECONDS: ${TRACKER_REFRESH_SECONDS}
+      LOG_LEVEL: ${LOG_LEVEL}
 
-      INTERVAL_SECONDS: "900"
-      TRACKER_REFRESH_SECONDS: "86400"
-
-      POSTGRES_HOST: "postgres"
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: "qbittorrent_stats"
-      POSTGRES_USER: "qbittorrent_stats"
-
-      TZ: "America/Argentina/Buenos_Aires"
-
-    networks:
-      - ix-qbittorrent_default
-      - ix-postgres_default
-
-networks:
-  ix-qbittorrent_default:
-    external: true
-
-  ix-postgres_default:
-    external: true
+volumes:
+  postgres_data:

@@ -156,7 +156,8 @@ WHERE tracker_group != 'Public';
 │   └── test_collector.py    # Collection cycle tests
 ├── Makefile            # Build and development targets
 ├── Dockerfile          # Container build instructions
-├── docker-compose.yml  # Deployment configuration
+├── .env.example        # Local dev environment template
+├── docker-compose.yml  # Local dev configuration
 └── README.md           # This file
 ```
 
@@ -236,6 +237,48 @@ The image is built for both **AMD64** (TrueNAS) and **ARM64** (Apple Silicon Mac
 2. Run `make docker-push` to build and push the new version
 3. In TrueNAS, click the **Update** button to pull and deploy the new image
 
+## Local Development
+
+You can run the collector locally with a local PostgreSQL database while connecting to your TrueNAS qBittorrent instance. This is useful for testing code changes before deploying.
+
+### Prerequisites
+
+- Docker Desktop running on your Mac
+- Your TrueNAS machine accessible from your Mac (same network)
+
+### Setup
+
+1. **Create the `.env` file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Edit `.env`:**
+   - Change `QB_URL` to your TrueNAS IP address and qBittorrent port
+   - Set `QB_PASSWORD` to your qBittorrent password
+   - Adjust `INTERVAL_SECONDS` for faster testing
+
+3. **Start the local environment:**
+   ```bash
+   make up
+   ```
+
+4. **View logs:**
+   ```bash
+   make logs
+   ```
+
+5. **Stop when done:**
+   ```bash
+   make down
+   ```
+
+The local PostgreSQL data is stored in a Docker volume, so it persists between restarts. To start fresh, delete the volume:
+
+```bash
+docker volume rm qbittorrent-stats_postgres_data
+```
+
 ### Makefile Targets
 
 | Target | Description |
@@ -248,8 +291,9 @@ The image is built for both **AMD64** (TrueNAS) and **ARM64** (Apple Silicon Mac
 | `make docker-build` | Build multi-arch image (amd64 + arm64) and push to GHCR |
 | `make docker-push` | Login, build, and push to GHCR |
 | `make docker-deploy` | Alias for `docker-push` |
-| `make run` | Start the container via docker-compose |
-| `make stop` | Stop the running container |
+| `make up` | Start local dev (local DB + remote qBittorrent) |
+| `make down` | Stop local dev environment |
+| `make logs` | View local dev logs |
 | `make clean` | Remove build artifacts and cache |
 | `make help` | List all available targets |
 
