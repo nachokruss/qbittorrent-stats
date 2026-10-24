@@ -195,14 +195,49 @@ make test
 make test-cov
 ```
 
-## Makefile Targets
+## Deploying to GitHub Container Registry
+
+To deploy updates from your laptop to TrueNAS, push the Docker image to GHCR, then restart the app on TrueNAS to pull the new image.
+
+### One-time setup
+
+1. **Create a GitHub personal access token (classic)**:
+   - Go to [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens)
+   - Click **Generate new token → Generate new token (classic)**
+   - Give it a label (e.g., "Docker Registry")
+   - Under **Expiration**, choose your preferred expiry (or "No expiration")
+   - Under **Select scopes**, check **write:packages**
+   - Click **Generate token** and copy it (it starts with `ghp_`)
+
+2. **Save the token locally** (not committed to git):
+   ```bash
+   echo "YOUR_TOKEN" > .docker-token
+   ```
+   The `.docker-token` file is already in `.gitignore`, so it won't be pushed.
+
+### Deploy
+
+```bash
+# Build, tag, and push to GHCR in one step
+make docker-push
+```
+
+Then in TrueNAS, change the app image to `ghcr.io/nachokruss/qbittorrent-stats:latest` and restart.
+
+The image is built for both **AMD64** (TrueNAS) and **ARM64** (Apple Silicon Macs), so it works on any architecture.
+
+### Makefile Targets
 
 | Target | Description |
 |---|---|
 | `make test` | Run all unit tests |
 | `make test-cov` | Run tests with coverage report |
 | `make lint` | Check Python syntax |
-| `make build` | Build the Docker image |
+| `make build` | Build the local Docker image |
+| `make docker-login` | Log in to GHCR (reads token from `.docker-token`) |
+| `make docker-build` | Build multi-arch image (amd64 + arm64) and push to GHCR |
+| `make docker-push` | Login, build, and push to GHCR |
+| `make docker-deploy` | Alias for `docker-push` |
 | `make run` | Start the container via docker-compose |
 | `make stop` | Stop the running container |
 | `make clean` | Remove build artifacts and cache |

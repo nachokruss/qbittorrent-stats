@@ -1,6 +1,7 @@
-.PHONY: test lint build run clean help
+.PHONY: test lint build run clean help docker-login docker-build docker-push docker-deploy
 
 PYTHON := .venv/bin/python
+GHCR_REPO := ghcr.io/nachokruss/qbittorrent-stats:latest
 
 help: ## Show this help message
 	@echo "Available targets:"
@@ -16,8 +17,19 @@ lint: ## Run code style and quality checks
 	$(PYTHON) -m py_compile collector/*.py
 	$(PYTHON) -m py_compile tests/*.py
 
-build: ## Build the Docker image
+build: ## Build the local Docker image
 	docker build -t qbittorrent-stats:latest .
+
+docker-login: ## Log in to GitHub Container Registry (reads token from .docker-token file)
+	@ [ -f .docker-token ] || { echo "Error: .docker-token file not found. Create it with your GHCR personal access token."; exit 1; }
+	@ cat .docker-token | docker login ghcr.io -u nachokruss --password-stdin
+
+docker-build: ## Build multi-arch image (amd64 + arm64) and push to GHCR
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(GHCR_REPO) --push .
+
+docker-push: docker-login docker-build ## Login, build multi-arch image, and push to GHCR
+
+docker-deploy: docker-push ## Alias for docker-push (build and deploy to GHCR)
 
 run: ## Run the container (requires external networks)
 	docker-compose up -d

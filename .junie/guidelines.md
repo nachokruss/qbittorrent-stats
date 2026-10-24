@@ -93,11 +93,23 @@ Place new test files in `tests/` with the naming convention `test_<module>.py`. 
 - `make test` — Run all unit tests
 - `make test-cov` — Run tests with coverage report
 - `make lint` — Check Python syntax
-- `make build` — Build the Docker image
+- `make build` — Build the local Docker image
+- `make docker-login` — Log in to GHCR (reads token from `.docker-token`)
+- `make docker-build` — Build multi-arch image (amd64 + arm64) and push to GHCR
+- `make docker-push` — Login, build, and push to GHCR
+- `make docker-deploy` — Alias for `docker-push`
 - `make run` — Start the container via docker-compose
 - `make stop` — Stop the running container
 - `make clean` — Remove build artifacts and cache
 - `make help` — List all available targets
+
+## Docker Deployment
+
+The project is deployed to GitHub Container Registry (GHCR) at `ghcr.io/nachokruss/qbittorrent-stats:latest`.
+
+To deploy, create a `.docker-token` file with a GitHub personal access token (classic) with `write:packages` scope. Fine-grained tokens may not show the "Packages" permission option for all users, so classic tokens are the reliable option. The file is gitignored and never committed.
+
+Run `make docker-push` to login, build, tag, and push the image in one step. Then restart the app in TrueNAS to pull the new image.
 
 ## What Not to Do
 
