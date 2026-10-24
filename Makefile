@@ -54,26 +54,28 @@ clean: ## Remove build artifacts and cache
 # Set TRUENAS_POSTGRES_* variables in your .env file
 
 db-dump: ## Dump the TrueNAS PostgreSQL database to dump.sql
-	@ [ -f .env ] && export $$(grep -v '^#' .env | xargs) || { echo "Error: .env file not found"; exit 1; }
-	@echo "Dumping database from TrueNAS ($(TRUENAS_POSTGRES_HOST):$(TRUENAS_POSTGRES_PORT))..."
-	PGPASSWORD="$$TRUENAS_POSTGRES_PASSWORD" pg_dump \
+	@ [ -f .env ] || { echo "Error: .env file not found"; exit 1; }
+	@echo "Dumping database from TrueNAS..."
+	@set -a && source .env && set +a && \
+		PGPASSWORD="$$TRUENAS_POSTGRES_PASSWORD" pg_dump \
 		-h "$$TRUENAS_POSTGRES_HOST" \
 		-p "$$TRUENAS_POSTGRES_PORT" \
 		-U "$$TRUENAS_POSTGRES_USER" \
-		d "$$TRUENAS_POSTGRES_DB" \
+		"$$TRUENAS_POSTGRES_DB" \
 		--no-owner --no-acl --clean --if-exists \
 		> dump.sql
 	@echo "Dump saved to dump.sql ($$(wc -l < dump.sql) lines)"
 
 db-load: ## Load dump.sql into the local PostgreSQL container
 	@ [ -f dump.sql ] || { echo "Error: dump.sql not found. Run 'make db-dump' first."; exit 1; }
-	@ [ -f .env ] && export $$(grep -v '^#' .env | xargs) || { echo "Error: .env file not found"; exit 1; }
+	@ [ -f .env ] || { echo "Error: .env file not found"; exit 1; }
 	@echo "Loading dump into local database (qbittorrent-stats-db)..."
-	PGPASSWORD="$$POSTGRES_PASSWORD" psql \
+	@set -a && source .env && set +a && \
+		PGPASSWORD="$$POSTGRES_PASSWORD" psql \
 		-h "localhost" \
 		-p "5432" \
 		-U "$$POSTGRES_USER" \
-		d "$$POSTGRES_DB" \
+		"$$POSTGRES_DB" \
 		< dump.sql
 	@echo "Database loaded successfully."
 

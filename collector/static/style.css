@@ -256,9 +256,6 @@ table {
     width: 10%;
 }
 
-#torrents-table th[data-sort="seeding_days"] {
-    width: 10%;
-}
 
 #torrents-table th[data-sort="last_seen_at"] {
     width: 18%;
@@ -367,13 +364,15 @@ tbody tr:hover {
    Torrent Name Link
    -------------------------------------------------------------------------- */
 
-.torrent-name-link {
+.torrent-name-link,
+.tracker-link {
     color: #4a90d9;
     text-decoration: none;
     cursor: pointer;
 }
 
-.torrent-name-link:hover {
+.torrent-name-link:hover,
+.tracker-link:hover {
     text-decoration: underline;
 }
 
@@ -521,4 +520,107 @@ tbody tr:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Analytics
+   -------------------------------------------------------------------------- */
+
+.analytics-section {
+    margin-bottom: 3rem;
+}
+
+.analytics-section h2 {
+    font-size: 1.2rem;
+    color: #1a1a2e;
+    margin-bottom: 1rem;
+}
+
+.analytics-controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.analytics-controls select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+}
+
+/* Top 5 Daily table — highlight total rows */
+#top5-daily-table tbody tr.total-row {
+    background: #f0f4fa;
+    font-weight: 600;
+}
+
+#top5-daily-table tbody tr.total-row td {
+    border-top: 2px solid #4a90d9;
+    border-bottom: 2px solid #4a90d9;
+}
+
+/* Efficiency table — compact layout */
+#efficiency-table {
+    font-size: 0.85rem;
+}
+
+#efficiency-table th,
+#efficiency-table td {
+    padding: 0.4rem 0.5rem;
+    white-space: nowrap;
+}
+
+#efficiency-table th:nth-child(2),
+#efficiency-table td:nth-child(2) {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Efficiency classification badges */
+.badge-efficiency {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.badge-high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-medium {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.badge-low {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-very-low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Checkbox filter in analytics controls */
+.checkbox-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-filter input[type="checkbox"] {
+    cursor: pointer;
+    width: 1rem;
+    height: 1rem;
 }

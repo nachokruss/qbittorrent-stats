@@ -27,6 +27,7 @@ from .qbittorrent import QBittorrentClient
 
 def run_web_server():
     """Run the FastAPI web server in a background thread."""
+    import os
     from uvicorn import Config, Server
 
     from .web import app
@@ -34,6 +35,26 @@ def run_web_server():
     config = Config(app, host="0.0.0.0", port=WEB_PORT, log_level="info")
     server = Server(config)
     server.run()
+
+
+def run_web_server_with_reload():
+    """Run the FastAPI web server with hot-reload enabled (DEV_MODE only).
+
+    This must run as the main process because uvicorn's reload spawns
+    a child process and can't work from a thread.
+    """
+    import subprocess
+    import sys
+
+    from .config import WEB_PORT
+
+    subprocess.run([
+        sys.executable, "-m", "uvicorn", "collector.web:app",
+        "--host", "0.0.0.0",
+        "--port", str(WEB_PORT),
+        "--reload",
+        "--reload-dir", "/app/collector",
+    ])
 
 
 def main():
@@ -67,10 +88,20 @@ def main():
         log.exception("Failed to apply database migrations")
         return
 
-    # Start the web server in a background thread.
-    web_thread = threading.Thread(target=run_web_server, daemon=True)
-    web_thread.start()
-    log.info("Web server started on port %s", WEB_PORT)
+    # Check if we're in dev mode with hot-reload enabled.
+    dev_mode = os.environ.get("DEV_MODE", "false").lower() == "true"
+
+    if dev_mode:
+        # In dev mode, run the web server with hot-reload in a background thread.
+        # The reload watcher uses polling, so it works with Docker volume mounts.
+        web_thread = threading.Thread(target=run_web_server_with_reload, daemon=True)
+        web_thread.start()
+        log.info("Web server started with hot-reload on port %s", WEB_PORT)
+    else:
+        # Start the web server in a background thread.
+        web_thread = threading.Thread(target=run_web_server, daemon=True)
+        web_thread.start()
+        log.info("Web server started on port %s", WEB_PORT)
 
     conn = connect()
 

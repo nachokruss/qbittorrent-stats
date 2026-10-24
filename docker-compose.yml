@@ -35,6 +35,10 @@ services:
       TRACKER_REFRESH_SECONDS: ${TRACKER_REFRESH_SECONDS}
       LOG_LEVEL: ${LOG_LEVEL}
       WEB_PORT: ${WEB_PORT}
+      DEV_MODE: ${DEV_MODE:-false}
+      WATCHFILES_FORCE_POLLING: "1"
+    volumes:
+      - ./collector:/app/collector
 
 volumes:
   postgres_data:

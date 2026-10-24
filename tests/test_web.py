@@ -522,7 +522,6 @@ class TestTorrentDetails:
         assert data["torrent"]["size_gb"] == 1.0
         assert data["torrent"]["uploaded_total_gb"] == 2.0
         assert data["torrent"]["downloaded_total_gb"] == 1.0
-        assert data["torrent"]["seeding_days"] == 10.0
         assert len(data["history"]) == 1
         assert len(data["deltas"]) == 1
         assert len(data["trackers"]) == 1

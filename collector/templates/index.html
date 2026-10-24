@@ -15,6 +15,8 @@
             <button class="tab" data-tab="charts">Charts</button>
             <button class="tab" data-tab="torrents">Torrents</button>
             <button class="tab" data-tab="trackers">Trackers</button>
+            <button class="tab" data-tab="top-uploads">Top Uploads</button>
+            <button class="tab" data-tab="efficiency">Efficiency</button>
         </div>
     </nav>
 
@@ -38,10 +40,6 @@
                 <div class="stat-card">
                     <div class="stat-value" id="total-size">—</div>
                     <div class="stat-label">Library Size</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="total-seeding-days">—</div>
-                    <div class="stat-label">Seeding Days</div>
                 </div>
             </div>
             <div class="last-run" id="last-run">
@@ -99,7 +97,6 @@
                             <th data-sort="privacy">Privacy</th>
                             <th data-sort="last_state">State</th>
                             <th data-sort="uploaded_gb">Uploaded</th>
-                            <th data-sort="seeding_days">Seeding Days</th>
                             <th data-sort="last_seen_at">Last Seen</th>
                         </tr>
                     </thead>
@@ -127,7 +124,141 @@
                 </table>
             </div>
         </section>
+
+        <!-- Top Uploads Tab -->
+        <section id="top-uploads" class="tab-content">
+            <h1>Top Uploads</h1>
+
+            <!-- Top Uploads Section -->
+            <div class="analytics-section">
+                <h2>Top Uploads</h2>
+                <div class="analytics-controls">
+                    <select id="top5-tracker-filter">
+                        <option value="">All Trackers</option>
+                    </select>
+                    <select id="top5-limit-filter">
+                        <option value="3">Top 3</option>
+                        <option value="5" selected>Top 5</option>
+                        <option value="10">Top 10</option>
+                        <option value="20">Top 20</option>
+                    </select>
+                    <select id="top5-period-filter">
+                        <option value="daily">Daily</option>
+                        <option value="weekly" selected>Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarter">Quarter</option>
+                        <option value="year">Year</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="top5-daily-table">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th>Rank</th>
+                                <th>Name</th>
+                                <th>Tracker</th>
+                                <th>Privacy</th>
+                                <th>Uploaded</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top5-daily-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Efficiency Tab -->
+        <section id="efficiency" class="tab-content">
+            <h1>Efficiency Ranking</h1>
+
+            <div class="analytics-section">
+                <h2>Efficiency Ranking</h2>
+                <div class="analytics-controls">
+                    <select id="efficiency-tracker-filter">
+                        <option value="">All Trackers</option>
+                    </select>
+                    <select id="efficiency-days-filter">
+                        <option value="7">Last 7 days</option>
+                        <option value="15" selected>Last 15 days</option>
+                        <option value="30">Last 30 days</option>
+                    </select>
+                    <label class="checkbox-filter">
+                        <input type="checkbox" id="efficiency-min-seeding-filter">
+                        Min 15 days seeding
+                    </label>
+                </div>
+                <div class="table-container">
+                    <table id="efficiency-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="ranking">#</th>
+                                <th data-sort="name">Name</th>
+                                <th data-sort="size_gb">Size (GiB)</th>
+                                <th data-sort="upload">Upload (GiB)</th>
+                                <th data-sort="upload_gb_per_seeding_day">GiB/Day</th>
+                                <th data-sort="efficiency">Score</th>
+                                <th data-sort="seeding_days">Seeding</th>
+                                <th data-sort="tracker_group">Tracker</th>
+                                <th data-sort="classification">Efficiency</th>
+                            </tr>
+                        </thead>
+                        <tbody id="efficiency-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
+
+    <!-- Tracker Details Modal -->
+    <div id="tracker-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-tracker-name">Tracker Details</h2>
+                <button class="modal-close" id="tracker-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Summary Grid -->
+                <div class="detail-grid" id="tracker-summary-grid"></div>
+
+                <!-- State Breakdown -->
+                <div class="detail-section">
+                    <h3>State Breakdown</h3>
+                    <div class="detail-grid" id="tracker-states-grid"></div>
+                </div>
+
+                <!-- Upload History Chart -->
+                <div class="detail-section">
+                    <h3>Upload History (90 days)</h3>
+                    <div class="detail-chart-container">
+                        <canvas id="tracker-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Torrents -->
+                <div class="detail-section">
+                    <h3>Top Torrents by Upload</h3>
+                    <div class="table-container">
+                        <table id="tracker-top-torrents-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Size (GiB)</th>
+                                    <th>Uploaded (GiB)</th>
+                                    <th>State</th>
+                                    <th>Privacy</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tracker-top-torrents-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Torrent Details Modal -->
     <div id="torrent-modal" class="modal">

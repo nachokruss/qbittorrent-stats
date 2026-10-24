@@ -21,6 +21,8 @@
             else if (tab === "charts") loadChart("daily");
             else if (tab === "torrents") loadTorrents();
             else if (tab === "trackers") loadTrackers();
+            else if (tab === "top-uploads") loadTop5Daily();
+            else if (tab === "efficiency") loadEfficiency();
         });
     });
 
@@ -59,7 +61,6 @@
                 document.getElementById("active-torrents").textContent = s.active_torrents || "—";
                 document.getElementById("total-uploaded").textContent = (s.total_uploaded_gb || 0) + " GB";
                 document.getElementById("total-size").textContent = (s.total_size_tb || 0) + " TB";
-                document.getElementById("total-seeding-days").textContent = (s.total_seeding_days || 0);
 
                 var runEl = document.getElementById("last-run");
                 if (data.last_run) {
@@ -254,7 +255,6 @@
                 '<td><span class="badge ' + privacyClass + '">' + escapeHtml(t.privacy) + '</span></td>' +
                 '<td><span class="badge ' + stateClass + '">' + escapeHtml(stateText) + '</span></td>' +
                 '<td>' + (t.uploaded_gb || 0) + ' GB</td>' +
-                '<td>' + (t.seeding_days || 0) + '</td>' +
                 '<td>' + fmtDateShort(t.last_seen_at) + '</td>';
 
             tbody.appendChild(tr);
@@ -349,16 +349,152 @@
 
                 data.forEach(function (t) {
                     var tr = document.createElement("tr");
+                    var trackerName = '<a href="#" class="tracker-link" data-tracker="' + escapeHtml(t.tracker_group) + '">' + escapeHtml(t.tracker_group) + '</a>';
                     tr.innerHTML =
-                        '<td>' + escapeHtml(t.tracker_group) + '</td>' +
+                        '<td>' + trackerName + '</td>' +
                         '<td>' + t.torrent_count + '</td>' +
                         '<td>' + (t.uploaded_gb || 0) + ' GB</td>';
                     tbody.appendChild(tr);
+                });
+
+                // Bind click handlers for tracker links
+                document.querySelectorAll(".tracker-link").forEach(function (link) {
+                    link.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        var tracker = this.dataset.tracker;
+                        showTrackerDetails(tracker);
+                    });
                 });
             })
             .catch(function (err) {
                 console.error("Trackers load failed:", err);
             });
+    }
+
+    // -----------------------------------------------------------------------
+    // Tracker Details Modal
+    // -----------------------------------------------------------------------
+
+    var trackerChart = null;
+
+    function showTrackerDetails(trackerGroup) {
+        var modal = document.getElementById("tracker-modal");
+        modal.classList.add("active");
+
+        document.getElementById("modal-tracker-name").textContent = trackerGroup;
+        document.getElementById("tracker-summary-grid").innerHTML = '<p>Loading...</p>';
+        document.getElementById("tracker-states-grid").innerHTML = "";
+        document.getElementById("tracker-top-torrents-body").innerHTML = "";
+        if (trackerChart) { trackerChart.destroy(); trackerChart = null; }
+
+        fetch("/api/tracker-details/" + encodeURIComponent(trackerGroup))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                renderTrackerDetails(data);
+            })
+            .catch(function (err) {
+                console.error("Tracker details load failed:", err);
+                document.getElementById("modal-tracker-name").textContent = "Error";
+                document.getElementById("tracker-summary-grid").innerHTML = '<p style="color:red">Failed to load tracker details.</p>';
+            });
+    }
+
+    function hideTrackerDetails() {
+        var modal = document.getElementById("tracker-modal");
+        modal.classList.remove("active");
+        if (trackerChart) { trackerChart.destroy(); trackerChart = null; }
+    }
+
+    document.getElementById("tracker-modal-close").addEventListener("click", hideTrackerDetails);
+    document.querySelectorAll("#tracker-modal .modal-overlay")[0].addEventListener("click", hideTrackerDetails);
+
+    function renderTrackerDetails(data) {
+        var s = data.summary;
+
+        // Summary grid
+        var summaryItems = [
+            { label: "Active Torrents", value: s.active_torrents || 0 },
+            { label: "Removed Torrents", value: s.removed_torrents || 0 },
+            { label: "Total Torrents", value: s.total_torrents || 0 },
+            { label: "Library Size", value: (s.active_size_gb || 0) + " GiB" },
+            { label: "Total Uploaded", value: (s.total_uploaded_gb || 0) + " GiB" },
+            { label: "Total Downloaded", value: (s.total_downloaded_gb || 0) + " GiB" },
+            { label: "Earliest Seen", value: s.earliest_seen_str ? fmtDate(s.earliest_seen_str) : "—" },
+            { label: "Latest Seen", value: s.latest_seen_str ? fmtDate(s.latest_seen_str) : "—" },
+        ];
+        document.getElementById("tracker-summary-grid").innerHTML = summaryItems.map(function (item) {
+            return '<div class="detail-item">' +
+                '<div class="detail-label">' + item.label + '</div>' +
+                '<div class="detail-value">' + escapeHtml(String(item.value)) + '</div>' +
+                '</div>';
+        }).join("");
+
+        // State breakdown
+        var states = data.states || [];
+        if (states.length > 0) {
+            document.getElementById("tracker-states-grid").innerHTML = states.map(function (st) {
+                return '<div class="detail-item">' +
+                    '<div class="detail-label">' + escapeHtml(st.last_state || "Unknown") + '</div>' +
+                    '<div class="detail-value">' + st.count + '</div>' +
+                    '</div>';
+            }).join("");
+        } else {
+            document.getElementById("tracker-states-grid").innerHTML = '<p>No active torrents.</p>';
+        }
+
+        // Upload history chart
+        var history = data.upload_history || [];
+        if (history.length > 0) {
+            var labels = history.map(function (h) { return fmtDateShort(h.day); });
+            var uploaded = history.map(function (h) { return h.uploaded_gb || 0; });
+
+            if (trackerChart) { trackerChart.destroy(); }
+            var ctx = document.getElementById("tracker-chart").getContext("2d");
+            trackerChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Uploaded (GiB)",
+                        data: uploaded,
+                        borderColor: "rgba(74, 144, 217, 1)",
+                        backgroundColor: "rgba(74, 144, 217, 0.1)",
+                        fill: true,
+                        tension: 0.3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: "GiB" } }
+                    }
+                }
+            });
+        }
+
+        // Top torrents table
+        var tbody = document.getElementById("tracker-top-torrents-body");
+        tbody.innerHTML = "";
+        (data.top_torrents || []).forEach(function (t) {
+            var tr = document.createElement("tr");
+            var nameCell = '<td><a href="#" class="torrent-link" data-hash="' + escapeHtml(t.torrent_hash) + '">' + escapeHtml(t.name) + '</a></td>';
+            tr.innerHTML = nameCell +
+                '<td>' + (t.size_gb || 0) + '</td>' +
+                '<td>' + (t.uploaded_gb || 0) + '</td>' +
+                '<td>' + escapeHtml(t.last_state || "—") + '</td>' +
+                '<td>' + escapeHtml(t.privacy || "—") + '</td>';
+            tbody.appendChild(tr);
+        });
+
+        // Bind torrent links inside tracker modal
+        document.querySelectorAll("#tracker-top-torrents-body .torrent-link").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                hideTrackerDetails();
+                var hash = this.dataset.hash;
+                showTorrentDetails(hash);
+            });
+        });
     }
 
     // -----------------------------------------------------------------------
@@ -415,7 +551,6 @@
             { label: "Size", value: (t.size_gb || 0) + " GB" },
             { label: "Total Uploaded", value: (t.uploaded_total_gb || 0) + " GB" },
             { label: "Total Downloaded", value: (t.downloaded_total_gb || 0) + " GB" },
-            { label: "Seeding Days", value: (t.seeding_days || 0) },
             { label: "Seeds / Leeches", value: (t.num_seeds || "—") + " / " + (t.num_leechs || "—") },
             { label: "First Seen", value: fmtDate(t.first_seen_at) },
             { label: "Last Seen", value: fmtDate(t.last_seen_at) },
@@ -516,6 +651,284 @@
         div.textContent = str;
         return div.innerHTML;
     }
+
+    function formatBytes(bytes) {
+        if (!bytes || bytes <= 0) return "—";
+        var units = ["B", "KiB", "MiB", "GiB", "TiB"];
+        var idx = 0;
+        var val = bytes;
+        while (val >= 1024 && idx < units.length - 1) {
+            val /= 1024;
+            idx++;
+        }
+        return (idx === 0 ? val : val.toFixed(2)) + " " + units[idx];
+    }
+
+    // -----------------------------------------------------------------------
+    // Analytics — Client-side sorting helpers (Efficiency table only)
+    // -----------------------------------------------------------------------
+
+    var efficiencySortCol = "ranking";
+    var efficiencySortOrder = "asc";
+    var efficiencyData = [];
+
+    function sortTableData(data, sortCol, sortOrder, tableId) {
+        var sorted = data.slice().sort(function (a, b) {
+            var aVal, bVal;
+            // Handle dynamic upload key (e.g., upload_15d_gb) for efficiency table
+            if (sortCol === "upload") {
+                var uploadKey = Object.keys(a).find(function (k) { return k.startsWith("upload_") && k.endsWith("_gb"); });
+                aVal = uploadKey ? a[uploadKey] : 0;
+                bVal = uploadKey ? b[uploadKey] : 0;
+            }
+            // Sorting by classification badge should use the numeric efficiency score
+            else if (sortCol === "classification") {
+                aVal = a.efficiency || 0;
+                bVal = b.efficiency || 0;
+            }
+            else {
+                aVal = a[sortCol];
+                bVal = b[sortCol];
+            }
+            // Handle null/undefined
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return 1;
+            if (bVal == null) return -1;
+            // Numeric comparison if both are numbers
+            if (typeof aVal === "number" && typeof bVal === "number") {
+                return (sortOrder === "asc" ? aVal - bVal : bVal - aVal);
+            }
+            // String comparison
+            var aStr = String(aVal).toLowerCase();
+            var bStr = String(bVal).toLowerCase();
+            if (aStr < bStr) return sortOrder === "asc" ? -1 : 1;
+            if (aStr > bStr) return sortOrder === "asc" ? 1 : -1;
+            return 0;
+        });
+        return sorted;
+    }
+
+    function updateSortArrows(tableId, sortCol, sortOrder) {
+        document.querySelectorAll("#" + tableId + " thead th[data-sort]").forEach(function (th) {
+            var arrow = th.querySelector(".sort-arrow");
+            if (arrow) arrow.remove();
+            if (th.dataset.sort === sortCol) {
+                var span = document.createElement("span");
+                span.className = "sort-arrow";
+                span.textContent = sortOrder === "asc" ? " \u25B2" : " \u25BC";
+                th.appendChild(span);
+            }
+        });
+    }
+
+    // Efficiency sortable headers
+    document.querySelectorAll("#efficiency-table thead th[data-sort]").forEach(function (th) {
+        th.addEventListener("click", function () {
+            var sortCol = th.dataset.sort;
+            if (efficiencySortCol === sortCol) {
+                efficiencySortOrder = efficiencySortOrder === "asc" ? "desc" : "asc";
+            } else {
+                efficiencySortCol = sortCol;
+                efficiencySortOrder = "asc";
+            }
+            updateSortArrows("efficiency-table", efficiencySortCol, efficiencySortOrder);
+            renderEfficiency(efficiencyData);
+        });
+        th.style.cursor = "pointer";
+    });
+
+    // -----------------------------------------------------------------------
+    // Analytics — Top 5 Daily
+    // -----------------------------------------------------------------------
+
+    var analyticsTrackerGroupsLoaded = false;
+
+    function populateAnalyticsTrackerFilters() {
+        if (analyticsTrackerGroupsLoaded) return;
+        analyticsTrackerGroupsLoaded = true;
+
+        fetch("/api/tracker-groups")
+            .then(function (r) { return r.json(); })
+            .then(function (groups) {
+                var selects = [
+                    document.getElementById("top5-tracker-filter"),
+                    document.getElementById("efficiency-tracker-filter")
+                ];
+                groups.forEach(function (g) {
+                    selects.forEach(function (select) {
+                        var opt = document.createElement("option");
+                        opt.value = g;
+                        opt.textContent = g;
+                        select.appendChild(opt);
+                    });
+                });
+            })
+            .catch(function (err) {
+                console.error("Analytics tracker groups load failed:", err);
+            });
+    }
+
+    function loadTop5Daily() {
+        populateAnalyticsTrackerFilters();
+
+        var tracker = document.getElementById("top5-tracker-filter").value;
+        var period = document.getElementById("top5-period-filter").value;
+        var limit = document.getElementById("top5-limit-filter").value;
+        var params = new URLSearchParams();
+        params.set("period", period);
+        params.set("limit", limit);
+        if (tracker) params.set("tracker", tracker);
+
+        fetch("/api/analytics/top5-daily?" + params.toString())
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                renderTop5Daily(data);
+            })
+            .catch(function (err) {
+                console.error("Top Daily load failed:", err);
+            });
+    }
+
+    function renderTop5Daily(data) {
+        var tbody = document.getElementById("top5-daily-body");
+        tbody.innerHTML = "";
+
+        data.forEach(function (row) {
+            var tr = document.createElement("tr");
+            var isTotal = row.name && row.name.endsWith("TOTAL");
+            if (isTotal) {
+                tr.classList.add("total-row");
+            }
+
+            var privacyBadge = "";
+            if (row.privacy) {
+                var privacyClass = row.privacy === "private" ? "badge-private" : "badge-public";
+                privacyBadge = '<span class="badge ' + privacyClass + '">' + escapeHtml(row.privacy) + '</span>';
+            }
+
+            var nameCell;
+            if (isTotal) {
+                nameCell = '<td>' + escapeHtml(row.name || "—") + '</td>';
+            } else {
+                nameCell = '<td><a class="torrent-name-link" data-hash="' + escapeHtml(row.torrent_hash || "") + '">' + escapeHtml(row.name || "—") + '</a></td>';
+            }
+
+            tr.innerHTML =
+                '<td>' + escapeHtml(row.day || "—") + '</td>' +
+                '<td>' + (row.rank ? "#" + row.rank : "—") + '</td>' +
+                nameCell +
+                '<td>' + escapeHtml(row.tracker_group || "—") + '</td>' +
+                '<td>' + privacyBadge + '</td>' +
+                '<td>' + formatBytes(row.uploaded_bytes) + '</td>';
+
+            tbody.appendChild(tr);
+        });
+
+        // Bind click handlers on torrent name links
+        tbody.querySelectorAll(".torrent-name-link").forEach(function (link) {
+            link.addEventListener("click", function () {
+                showTorrentDetails(link.dataset.hash);
+            });
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Analytics — Efficiency
+    // -----------------------------------------------------------------------
+
+    function loadEfficiency() {
+        populateAnalyticsTrackerFilters();
+
+        var tracker = document.getElementById("efficiency-tracker-filter").value;
+        var days = document.getElementById("efficiency-days-filter").value;
+        var minSeeding = document.getElementById("efficiency-min-seeding-filter").checked ? 15 : 0;
+        var params = new URLSearchParams();
+        params.set("days", days);
+        params.set("min_seeding_days", minSeeding);
+        if (tracker) params.set("tracker", tracker);
+
+        fetch("/api/analytics/efficiency?" + params.toString())
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                efficiencyData = data;
+                efficiencySortCol = "ranking";
+                efficiencySortOrder = "asc";
+                updateSortArrows("efficiency-table", efficiencySortCol, efficiencySortOrder);
+                renderEfficiency(data);
+            })
+            .catch(function (err) {
+                console.error("Efficiency load failed:", err);
+            });
+    }
+
+    function renderEfficiency(data) {
+        var tbody = document.getElementById("efficiency-body");
+        tbody.innerHTML = "";
+
+        // Sort data based on current sort state
+        var sorted = sortTableData(data, efficiencySortCol, efficiencySortOrder, "efficiency-table");
+
+        sorted.forEach(function (row) {
+            var tr = document.createElement("tr");
+
+            var classification = row.classification || "";
+            var badgeClass = "";
+            if (classification === "High") badgeClass = "badge-high";
+            else if (classification === "Medium") badgeClass = "badge-medium";
+            else if (classification === "Low") badgeClass = "badge-low";
+            else badgeClass = "badge-very-low";
+
+            var privacyBadge = "";
+            if (row.privacy) {
+                var privacyClass = row.privacy === "private" ? "badge-private" : "badge-public";
+                privacyBadge = '<span class="badge ' + privacyClass + '">' + escapeHtml(row.privacy) + '</span>';
+            }
+
+            // Dynamically find the upload column name (e.g., upload_15d_gb)
+            var uploadKey = Object.keys(row).find(function (k) { return k.startsWith("upload_") && k.endsWith("_gb"); });
+            var uploadVal = uploadKey ? (row[uploadKey] || 0) : 0;
+
+            tr.innerHTML =
+                '<td>' + (row.ranking || "—") + '</td>' +
+                '<td><a class="torrent-name-link" data-hash="' + escapeHtml(row.torrent_hash || "") + '">' + escapeHtml(row.name || "—") + '</a></td>' +
+                '<td>' + (row.size_gb || 0) + '</td>' +
+                '<td>' + uploadVal + '</td>' +
+                '<td>' + (row.upload_gb_per_seeding_day || 0) + '</td>' +
+                '<td>' + (row.efficiency || 0) + '</td>' +
+                '<td>' + (row.seeding_days || 0) + '</td>' +
+                '<td>' + escapeHtml(row.tracker_group || "—") + '</td>' +
+                '<td><span class="badge-efficiency ' + badgeClass + '">' + escapeHtml(classification) + '</span></td>';
+
+            tbody.appendChild(tr);
+        });
+
+        // Bind click handlers on torrent name links
+        tbody.querySelectorAll(".torrent-name-link").forEach(function (link) {
+            link.addEventListener("click", function () {
+                showTorrentDetails(link.dataset.hash);
+            });
+        });
+    }
+
+    // Analytics filter change handlers
+    document.getElementById("top5-tracker-filter").addEventListener("change", function () {
+        loadTop5Daily();
+    });
+    document.getElementById("top5-limit-filter").addEventListener("change", function () {
+        loadTop5Daily();
+    });
+    document.getElementById("top5-period-filter").addEventListener("change", function () {
+        loadTop5Daily();
+    });
+    document.getElementById("efficiency-tracker-filter").addEventListener("change", function () {
+        loadEfficiency();
+    });
+    document.getElementById("efficiency-days-filter").addEventListener("change", function () {
+        loadEfficiency();
+    });
+    document.getElementById("efficiency-min-seeding-filter").addEventListener("change", function () {
+        loadEfficiency();
+    });
 
     // -----------------------------------------------------------------------
     // Initial load
