@@ -6,24 +6,56 @@
     "use strict";
 
     // -----------------------------------------------------------------------
-    // Tab switching
+    // Tab switching with URL hash routing
     // -----------------------------------------------------------------------
 
+    var tabLoaders = {
+        "dashboard": loadDashboard,
+        "charts": function () { loadChart("daily"); },
+        "torrents": loadTorrents,
+        "trackers": loadTrackers,
+        "top-uploads": loadTop5Daily,
+        "efficiency": loadEfficiency
+    };
+
+    function switchTab(tabName) {
+        // Update UI
+        document.querySelectorAll(".tab").forEach(function (b) { b.classList.remove("active"); });
+        document.querySelectorAll(".tab-content").forEach(function (c) { c.classList.remove("active"); });
+
+        var btn = document.querySelector('.tab[data-tab="' + tabName + '"]');
+        var section = document.getElementById(tabName);
+        if (btn) btn.classList.add("active");
+        if (section) section.classList.add("active");
+
+        // Load data for the tab
+        var loader = tabLoaders[tabName];
+        if (loader) loader();
+    }
+
+    function navigateTo(tabName) {
+        // Update URL hash without triggering hashchange
+        if (location.hash !== "#" + tabName) {
+            history.pushState(null, "", "#" + tabName);
+        }
+        switchTab(tabName);
+    }
+
+    // Handle tab button clicks
     document.querySelectorAll(".tab").forEach(function (btn) {
         btn.addEventListener("click", function () {
-            document.querySelectorAll(".tab").forEach(function (b) { b.classList.remove("active"); });
-            document.querySelectorAll(".tab-content").forEach(function (c) { c.classList.remove("active"); });
-            btn.classList.add("active");
-            document.getElementById(btn.dataset.tab).classList.add("active");
-            // Load data for the tab
-            var tab = btn.dataset.tab;
-            if (tab === "dashboard") loadDashboard();
-            else if (tab === "charts") loadChart("daily");
-            else if (tab === "torrents") loadTorrents();
-            else if (tab === "trackers") loadTrackers();
-            else if (tab === "top-uploads") loadTop5Daily();
-            else if (tab === "efficiency") loadEfficiency();
+            navigateTo(btn.dataset.tab);
         });
+    });
+
+    // Handle browser back/forward buttons
+    window.addEventListener("hashchange", function () {
+        var hash = location.hash.replace("#", "");
+        if (hash && tabLoaders[hash]) {
+            switchTab(hash);
+        } else {
+            navigateTo("dashboard");
+        }
     });
 
     // -----------------------------------------------------------------------
@@ -57,13 +89,14 @@
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 var s = data.stats || {};
-                document.getElementById("total-torrents").textContent = s.total_torrents || "—";
                 document.getElementById("active-torrents").textContent = s.active_torrents || "—";
                 document.getElementById("total-uploaded").textContent = (s.total_uploaded_gb || 0) + " GB";
                 document.getElementById("total-size").textContent = (s.total_size_tb || 0) + " TB";
 
                 var runEl = document.getElementById("last-run");
-                if (data.last_run) {
+                if (data.error) {
+                    runEl.textContent = "Last collection: " + data.error;
+                } else if (data.last_run) {
                     var r = data.last_run;
                     runEl.textContent = "Last collection: " + fmtDate(r.started_at) +
                         " — " + (r.torrents_seen || 0) + " torrents, " + (r.errors || 0) + " errors";
@@ -73,6 +106,7 @@
             })
             .catch(function (err) {
                 console.error("Dashboard load failed:", err);
+                document.getElementById("last-run").textContent = "Last collection: error connecting to server";
             });
     }
 
@@ -82,7 +116,7 @@
 
     var uploadChart = null;
     var chartTrackerGroupsLoaded = false;
-    var isByTrackerMode = true;
+    var isByTrackerMode = document.getElementById("chart-by-tracker-btn").classList.contains("active");
 
     document.querySelectorAll(".chart-btn").forEach(function (btn) {
         btn.addEventListener("click", function () {
@@ -297,15 +331,19 @@
         params.set("order", currentOrder);
         params.set("page", torrentsPage);
 
+        var tbody = document.getElementById("torrents-body");
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem">Loading...</td></tr>';
+
         fetch("/api/torrents?" + params.toString())
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                renderTorrents(data.torrents);
+                renderTorrents(data.torrents || []);
                 renderPagination(data);
-                populateTrackerFilter(data.torrents);
+                populateTrackerFilter(data.torrents || []);
             })
             .catch(function (err) {
                 console.error("Torrents load failed:", err);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:red">Failed to load torrents</td></tr>';
             });
     }
 
@@ -486,7 +524,6 @@
         var summaryItems = [
             { label: "Active Torrents", value: s.active_torrents || 0 },
             { label: "Removed Torrents", value: s.removed_torrents || 0 },
-            { label: "Total Torrents", value: s.total_torrents || 0 },
             { label: "Library Size", value: (s.active_size_gb || 0) + " GiB" },
             { label: "Total Uploaded", value: (s.total_uploaded_gb || 0) + " GiB" },
             { label: "Total Downloaded", value: (s.total_downloaded_gb || 0) + " GiB" },
@@ -1002,8 +1039,15 @@
     });
 
     // -----------------------------------------------------------------------
-    // Initial load
+    // Initial load — check URL hash after all variables are initialized
     // -----------------------------------------------------------------------
 
-    loadDashboard();
+    (function () {
+        var hash = location.hash.replace("#", "");
+        if (hash && tabLoaders[hash]) {
+            switchTab(hash);
+        } else {
+            switchTab("dashboard");
+        }
+    })();
 })();

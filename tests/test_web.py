@@ -47,11 +47,9 @@ class TestDashboard:
             mock_query.side_effect = [
                 [
                     {
-                        "total_torrents": 50,
                         "active_torrents": 45,
                         "total_uploaded_gb": 123.45,
                         "total_size_tb": 2.5,
-                        "total_seeding_days": 300.0,
                     }
                 ],
                 [
@@ -69,7 +67,6 @@ class TestDashboard:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["stats"]["total_torrents"] == 50
         assert data["stats"]["active_torrents"] == 45
         assert data["last_run"]["torrents_seen"] == 50
         assert data["last_run"]["status"] == "success"

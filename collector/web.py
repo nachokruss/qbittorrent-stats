@@ -65,10 +65,13 @@ def get_conn():
 
 def query(sql: str, params=None):
     """Execute a query and return all rows as dicts."""
-    with get_conn() as conn:
+    conn = get_conn()
+    try:
         with conn.cursor() as cur:
             cur.execute(sql, params or ())
             return cur.fetchall()
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -88,25 +91,32 @@ async def index(request: Request):
 @app.get("/api/dashboard")
 def api_dashboard():
     """Return summary statistics for the dashboard."""
-    stats = query("""
-        SELECT
-            COUNT(*) AS total_torrents,
-            COUNT(*) FILTER (WHERE removed_at IS NULL) AS active_torrents,
-            ROUND(COALESCE(SUM(uploaded_total_bytes), 0) / 1073741824.0, 2) AS total_uploaded_gb,
-            ROUND(COALESCE(SUM(size_bytes) FILTER (WHERE removed_at IS NULL), 0) / 1099511627776.0, 2) AS total_size_tb
-        FROM torrents
-    """)
-    # Last collection run info
-    runs = query("""
-        SELECT started_at, finished_at, torrents_seen, torrents_processed, errors, status
-        FROM collector_runs
-        ORDER BY started_at DESC
-        LIMIT 1
-    """)
-    return {
-        "stats": stats[0] if stats else {},
-        "last_run": runs[0] if runs else None,
-    }
+    try:
+        stats = query("""
+            SELECT
+                COUNT(*) FILTER (WHERE removed_at IS NULL) AS active_torrents,
+                ROUND(COALESCE(SUM(uploaded_total_bytes), 0) / 1073741824.0, 2) AS total_uploaded_gb,
+                ROUND(COALESCE(SUM(size_bytes) FILTER (WHERE removed_at IS NULL), 0) / 1099511627776.0, 2) AS total_size_tb
+            FROM torrents
+        """)
+        # Last collection run info
+        runs = query("""
+            SELECT started_at, finished_at, torrents_seen, torrents_processed, errors, status
+            FROM collector_runs
+            ORDER BY started_at DESC
+            LIMIT 1
+        """)
+        return {
+            "stats": stats[0] if stats else {},
+            "last_run": runs[0] if runs else None,
+        }
+    except Exception as e:
+        log.error("Dashboard query failed: %s", e)
+        return {
+            "stats": {},
+            "last_run": None,
+            "error": "Database connection failed",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -398,7 +408,6 @@ def api_tracker_details(tracker_group: str):
         SELECT
             COUNT(*) FILTER (WHERE removed_at IS NULL) AS active_torrents,
             COUNT(*) FILTER (WHERE removed_at IS NOT NULL) AS removed_torrents,
-            COUNT(*) AS total_torrents,
             ROUND(COALESCE(SUM(size_bytes) FILTER (WHERE removed_at IS NULL), 0) / 1073741824.0, 2) AS active_size_gb,
             ROUND(COALESCE(SUM(uploaded_total_bytes), 0) / 1073741824.0, 2) AS total_uploaded_gb,
             ROUND(COALESCE(SUM(downloaded_total_bytes), 0) / 1073741824.0, 2) AS total_downloaded_gb,
