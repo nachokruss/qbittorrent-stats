@@ -1,8 +1,9 @@
-"""Main entry point — runs the collection loop."""
+"""Main entry point — runs the collection loop and web server."""
 
 import logging
 import os
 import subprocess
+import threading
 import time
 
 import psycopg
@@ -17,19 +18,32 @@ from .config import (
     POSTGRES_PORT,
     POSTGRES_USER,
     QB_URL,
+    WEB_PORT,
     setup_logging,
 )
-from .database import connect
+from .database import connect, record_run_finish, record_run_start
 from .qbittorrent import QBittorrentClient
 
 
+def run_web_server():
+    """Run the FastAPI web server in a background thread."""
+    from uvicorn import Config, Server
+
+    from .web import app
+
+    config = Config(app, host="0.0.0.0", port=WEB_PORT, log_level="info")
+    server = Server(config)
+    server.run()
+
+
 def main():
-    """Run the qBittorrent statistics collector loop."""
+    """Run the qBittorrent statistics collector loop and web server."""
     log = setup_logging()
 
     log.info("Starting qBittorrent statistics collector")
     log.info("qBittorrent: %s", QB_URL)
     log.info("PostgreSQL: %s:%s/%s", POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB)
+    log.info("Web server: port %s", WEB_PORT)
 
     # Apply any pending database migrations before starting the collector.
     # dbmate is idempotent: it only runs migrations that haven't been applied yet.
@@ -53,6 +67,11 @@ def main():
         log.exception("Failed to apply database migrations")
         return
 
+    # Start the web server in a background thread.
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+    log.info("Web server started on port %s", WEB_PORT)
+
     conn = connect()
 
     try:
@@ -61,6 +80,16 @@ def main():
 
         while True:
             started = time.monotonic()
+
+            # Record the start of this collection run in the database.
+            run_id = None
+            errors = 0
+            try:
+                run_id = record_run_start(conn)
+                conn.commit()
+            except Exception:
+                log.exception("Failed to record run start")
+                conn.rollback()
 
             # Re-authenticate before each collection to avoid stale sessions.
             # qBittorrent session cookies expire, so a fresh login ensures
@@ -71,28 +100,51 @@ def main():
                 log.exception("Failed to authenticate to qBittorrent")
 
             try:
-                collect_once(conn, qb)
+                torrents_processed, total_delta = collect_once(conn, qb)
 
             except requests.HTTPError as exc:
                 log.exception("qBittorrent API error: %s", exc)
                 conn.rollback()
+                errors += 1
 
                 # Re-authenticate and retry once in case the session expired.
                 try:
                     qb.login()
-                    collect_once(conn, qb)
+                    torrents_processed, total_delta = collect_once(conn, qb)
                 except Exception:
                     log.exception(
                         "Failed to re-authenticate or retry collection"
                     )
+                    errors += 1
+                    torrents_processed = 0
 
             except psycopg.Error:
                 log.exception("PostgreSQL error")
                 conn.rollback()
+                errors += 1
+                torrents_processed = 0
 
             except Exception:
                 log.exception("Unexpected collector error")
                 conn.rollback()
+                errors += 1
+                torrents_processed = 0
+
+            # Record the finish of this collection run.
+            if run_id is not None:
+                status = "error" if errors > 0 else "success"
+                try:
+                    record_run_finish(
+                        conn, run_id,
+                        torrents_seen=torrents_processed,
+                        torrents_processed=torrents_processed,
+                        errors=errors,
+                        status=status,
+                    )
+                    conn.commit()
+                except Exception:
+                    log.exception("Failed to record run finish")
+                    conn.rollback()
 
             elapsed = time.monotonic() - started
             sleep_for = max(1, INTERVAL_SECONDS - int(elapsed))

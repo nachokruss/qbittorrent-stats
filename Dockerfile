@@ -6,7 +6,10 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir \
     requests==2.32.3 \
-    psycopg[binary]==3.2.9 && \
+    psycopg[binary]==3.2.9 \
+    fastapi==0.115.6 \
+    uvicorn[standard]==0.34.0 \
+    jinja2==3.1.4 && \
     apt-get update && apt-get install -y --no-install-recommends curl && \
     DP_ARCH=$(dpkg --print-architecture) && \
     case "$DP_ARCH" in \
@@ -20,5 +23,7 @@ RUN pip install --no-cache-dir \
 
 COPY collector/ /app/collector/
 COPY migrations/ /app/migrations/
+
+EXPOSE ${WEB_PORT:-8080}
 
 CMD ["python", "-m", "collector"]

@@ -75,3 +75,34 @@ def mark_missing_torrents(conn, current_hashes):
             """,
             (current_hashes,),
         )
+
+
+def record_run_start(conn):
+    """Insert a new collector_runs row with status 'running'. Returns the run id."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO collector_runs (started_at, status)
+            VALUES (NOW(), 'running')
+            RETURNING id
+            """,
+        )
+        return cur.fetchone()["id"]
+
+
+def record_run_finish(conn, run_id, torrents_seen, torrents_processed, errors, status, error_message=None):
+    """Update a collector_runs row with the final results."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE collector_runs
+            SET finished_at = NOW(),
+                torrents_seen = %s,
+                torrents_processed = %s,
+                errors = %s,
+                status = %s,
+                error_message = %s
+            WHERE id = %s
+            """,
+            (torrents_seen, torrents_processed, errors, status, error_message, run_id),
+        )

@@ -42,7 +42,9 @@ def process_torrent(conn, qb_client, torrent):
             existing["trackers_refreshed_at"] if existing else now
         )
 
-    is_private, privacy, tracker_group = classify_torrent(tracker_urls)
+    is_private, privacy, tracker_group = classify_torrent(
+        tracker_urls, qb_private=torrent.get("private", False)
+    )
 
     primary_tracker_url = tracker_urls[0] if tracker_urls else None
     primary_tracker_host = (

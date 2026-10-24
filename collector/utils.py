@@ -42,7 +42,7 @@ def tracker_group_for_url(url):
     ):
         return "IPTorrents"
 
-    return "Other Private"
+    return "Public"
 
 
 def is_real_tracker(url):
@@ -73,16 +73,25 @@ def extract_tracker_urls(tracker_data):
     return result
 
 
-def classify_torrent(tracker_urls):
+def classify_torrent(tracker_urls, qb_private=False):
     """
     Determine privacy and tracker group for a torrent.
+
+    Args:
+        tracker_urls: List of tracker announce URLs.
+        qb_private: The `private` flag from the qBittorrent API (True for private torrents).
 
     Returns:
         Tuple of (is_private, privacy, tracker_group).
 
     Priority: BTArg > IPTorrents > Other Private > Public
+    - Known private tracker (BTArg/IPTorrents) → that group, private.
+    - Unknown tracker but qBittorrent marks it private → "Other Private".
+    - Everything else → "Public".
     """
     if not tracker_urls:
+        if qb_private:
+            return True, "private", "Other Private"
         return False, "public", "Public"
 
     groups = {tracker_group_for_url(url) for url in tracker_urls}
@@ -93,7 +102,10 @@ def classify_torrent(tracker_urls):
     if "IPTorrents" in groups:
         return True, "private", "IPTorrents"
 
-    return True, "private", "Other Private"
+    if qb_private:
+        return True, "private", "Other Private"
+
+    return False, "public", "Public"
 
 
 def build_magnet(torrent):

@@ -20,6 +20,8 @@ services:
     restart: unless-stopped
     depends_on:
       - postgres
+    ports:
+      - "8080:8080"
     environment:
       QB_URL: ${QB_URL}
       QB_USERNAME: ${QB_USERNAME}
@@ -32,6 +34,7 @@ services:
       INTERVAL_SECONDS: ${INTERVAL_SECONDS}
       TRACKER_REFRESH_SECONDS: ${TRACKER_REFRESH_SECONDS}
       LOG_LEVEL: ${LOG_LEVEL}
+      WEB_PORT: ${WEB_PORT}
 
 volumes:
   postgres_data:

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qBittorrent Stats</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">qBittorrent Stats</div>
+        <div class="nav-tabs">
+            <button class="tab active" data-tab="dashboard">Dashboard</button>
+            <button class="tab" data-tab="charts">Charts</button>
+            <button class="tab" data-tab="torrents">Torrents</button>
+            <button class="tab" data-tab="trackers">Trackers</button>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Dashboard Tab -->
+        <section id="dashboard" class="tab-content active">
+            <h1>Dashboard</h1>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-torrents">—</div>
+                    <div class="stat-label">Total Torrents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-torrents">—</div>
+                    <div class="stat-label">Active Torrents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-uploaded">—</div>
+                    <div class="stat-label">Total Uploaded</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-size">—</div>
+                    <div class="stat-label">Library Size</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-seeding-days">—</div>
+                    <div class="stat-label">Seeding Days</div>
+                </div>
+            </div>
+            <div class="last-run" id="last-run">
+                Last collection: loading...
+            </div>
+        </section>
+
+        <!-- Charts Tab -->
+        <section id="charts" class="tab-content">
+            <h1>Upload Charts</h1>
+            <div class="chart-controls">
+                <button class="chart-btn active" data-period="daily">Daily</button>
+                <button class="chart-btn" data-period="weekly">Weekly</button>
+                <button class="chart-btn" data-period="monthly">Monthly</button>
+                <select id="chart-tracker-filter">
+                    <option value="">All Trackers</option>
+                </select>
+            </div>
+            <div class="chart-container">
+                <canvas id="upload-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Torrents Tab -->
+        <section id="torrents" class="tab-content">
+            <h1>Torrents</h1>
+            <div class="filters">
+                <input type="text" id="search-input" placeholder="Search by name...">
+                <select id="tracker-filter">
+                    <option value="">All Trackers</option>
+                </select>
+                <select id="privacy-filter">
+                    <option value="">All Privacy</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="torrents-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="name">Name</th>
+                            <th data-sort="tracker_group">Tracker</th>
+                            <th data-sort="privacy">Privacy</th>
+                            <th data-sort="last_state">State</th>
+                            <th data-sort="uploaded_gb">Uploaded</th>
+                            <th data-sort="seeding_days">Seeding Days</th>
+                            <th data-sort="last_seen_at">Last Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="torrents-body">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </section>
+
+        <!-- Trackers Tab -->
+        <section id="trackers" class="tab-content">
+            <h1>Tracker Breakdown</h1>
+            <div class="table-container">
+                <table id="trackers-table">
+                    <thead>
+                        <tr>
+                            <th>Tracker Group</th>
+                            <th>Torrent Count</th>
+                            <th>Total Uploaded</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackers-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Torrent Details Modal -->
+    <div id="torrent-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-torrent-name">Torrent Details</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Info Grid -->
+                <div class="detail-grid" id="detail-grid"></div>
+
+                <!-- Upload/Download Chart -->
+                <div class="detail-section">
+                    <h3>Upload / Download History</h3>
+                    <div class="detail-chart-container">
+                        <canvas id="detail-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Trackers -->
+                <div class="detail-section">
+                    <h3>Trackers</h3>
+                    <div class="table-container">
+                        <table id="detail-trackers-table">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Group</th>
+                                    <th>Status</th>
+                                    <th>Peers</th>
+                                    <th>Seeds</th>
+                                    <th>Leeches</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detail-trackers-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Events -->
+                <div class="detail-section">
+                    <h3>Recent Events</h3>
+                    <div class="table-container">
+                        <table id="detail-events-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detail-events-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,474 @@
+/* ==========================================================================
+   qBittorrent Stats — Web Interface Styles
+   ========================================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Navigation
+   -------------------------------------------------------------------------- */
+
+nav {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.nav-brand {
+    font-size: 1.25rem;
+    font-weight: 700;
+    padding: 1rem 0;
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.tab {
+    background: transparent;
+    border: none;
+    color: #a0a0b0;
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.tab:hover {
+    color: #fff;
+}
+
+.tab.active {
+    color: #fff;
+    border-bottom-color: #4a90d9;
+}
+
+/* --------------------------------------------------------------------------
+   Main Content
+   -------------------------------------------------------------------------- */
+
+main {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #1a1a2e;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard Stats
+   -------------------------------------------------------------------------- */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #4a90d9;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 0.25rem;
+}
+
+.last-run {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* --------------------------------------------------------------------------
+   Charts
+   -------------------------------------------------------------------------- */
+
+.chart-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.chart-controls select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.chart-btn {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.chart-btn:hover {
+    background: #f0f0f0;
+}
+
+.chart-btn.active {
+    background: #4a90d9;
+    color: #fff;
+    border-color: #4a90d9;
+}
+
+.chart-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    height: 400px;
+}
+
+/* --------------------------------------------------------------------------
+   Filters
+   -------------------------------------------------------------------------- */
+
+.filters {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.filters input,
+.filters select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+}
+
+.filters input {
+    min-width: 200px;
+}
+
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
+
+.table-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+thead {
+    background: #f8f9fa;
+}
+
+th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid #eee;
+    white-space: nowrap;
+}
+
+th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+th[data-sort]:hover {
+    background: #e9ecef;
+}
+
+.sort-arrow {
+    font-size: 0.75rem;
+    color: #4a90d9;
+}
+
+td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* --------------------------------------------------------------------------
+   Pagination
+   -------------------------------------------------------------------------- */
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.pagination button {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+    background: #f0f0f0;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination span {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* --------------------------------------------------------------------------
+   Utility
+   -------------------------------------------------------------------------- */
+
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.badge-public {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-private {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.badge-removed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* --------------------------------------------------------------------------
+   Torrent Name Link
+   -------------------------------------------------------------------------- */
+
+.torrent-name-link {
+    color: #4a90d9;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.torrent-name-link:hover {
+    text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Modal
+   -------------------------------------------------------------------------- */
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: relative;
+    background: #fff;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+    font-size: 1.15rem;
+    color: #1a1a2e;
+    margin: 0;
+    word-break: break-word;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #888;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Detail Grid
+   -------------------------------------------------------------------------- */
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-item {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+}
+
+.detail-item .detail-label {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.25rem;
+}
+
+.detail-item .detail-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Detail Sections
+   -------------------------------------------------------------------------- */
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-section h3 {
+    font-size: 1rem;
+    color: #1a1a2e;
+    margin-bottom: 0.75rem;
+}
+
+.detail-chart-container {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    height: 300px;
+}
+
+/* --------------------------------------------------------------------------
+   Detail Tables
+   -------------------------------------------------------------------------- */
+
+#detail-trackers-table td,
+#detail-events-table td {
+    font-size: 0.85rem;
+}
+
+#detail-trackers-table td:first-child,
+#detail-events-table td:nth-child(3) {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
