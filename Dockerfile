@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir \
     requests==2.32.3 \
     psycopg[binary]==3.2.9
 
-COPY collector.py /app/collector.py
+COPY collector/ /app/collector/
 COPY schema.sql /app/schema.sql
 
-CMD ["python", "/app/collector.py"]
+CMD ["python", "-m", "collector"]

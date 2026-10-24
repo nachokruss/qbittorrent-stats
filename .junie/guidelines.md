@@ -2,11 +2,21 @@
 
 ## Overview
 
-This is a single-file Python application that collects qBittorrent statistics and stores them in PostgreSQL. It runs as a Docker container, typically deployed on TrueNAS.
+This is a Python package that collects qBittorrent statistics and stores them in PostgreSQL. It runs as a Docker container, typically deployed on TrueNAS.
 
 ## Architecture
 
-- **collector.py** — The entire application logic. Single entry point via `main()`.
+- **collector/** — Python package with modular code:
+  - `__main__.py` — Entry point; runs the collection loop.
+  - `config.py` — Environment variable configuration and logging setup.
+  - `utils.py` — Helper functions: tracker classification, state normalization, magnet URIs.
+  - `qbittorrent.py` — HTTP API client for qBittorrent.
+  - `database.py` — PostgreSQL connection, schema initialization, and queries.
+  - `trackers.py` — Tracker refresh logic and upsert operations.
+  - `torrent.py` — Core torrent processing: upserts, snapshots, upload deltas.
+  - `collector.py` — Collection orchestration; runs one full cycle.
+- **tests/** — Pytest-based unit tests with mocked external dependencies.
+- **Makefile** — Build and development targets: test, lint, build, run, clean.
 - **schema.sql** — Database schema with tables and SQL views. Applied on startup.
 - **Dockerfile** — Python 3.12 slim image with `requests` and `psycopg` dependencies.
 - **docker-compose.yml** — Deployment config; connects to external TrueNAS networks.
@@ -54,7 +64,7 @@ Views provide ready-to-query summaries: daily/weekly/monthly uploads, totals by 
 
 ### Adding a new tracker classification
 
-Edit `tracker_group_for_url()` in `collector.py`. Add a new `if` block that checks the announce URL prefix and returns the group name.
+Edit `tracker_group_for_url()` in `collector/utils.py`. Add a new `if` block that checks the announce URL prefix and returns the group name.
 
 ### Changing the collection interval
 
@@ -67,6 +77,27 @@ Append the `CREATE OR REPLACE VIEW` statement to `schema.sql`. The schema is ide
 ### Debugging
 
 Set `LOG_LEVEL=DEBUG` in the environment variables. Logs go to stdout, which TrueNAS captures.
+
+### Running tests
+
+Run `make test` to execute all unit tests. Tests use mocking for external dependencies (qBittorrent API, PostgreSQL), so they don't require running services.
+
+To run tests with coverage: `make test-cov`.
+
+### Adding tests
+
+Place new test files in `tests/` with the naming convention `test_<module>.py`. Use pytest class-based tests. Mock all external dependencies — tests should run without qBittorrent or PostgreSQL.
+
+## Makefile Targets
+
+- `make test` — Run all unit tests
+- `make test-cov` — Run tests with coverage report
+- `make lint` — Check Python syntax
+- `make build` — Build the Docker image
+- `make run` — Start the container via docker-compose
+- `make stop` — Stop the running container
+- `make clean` — Remove build artifacts and cache
+- `make help` — List all available targets
 
 ## What Not to Do
 

@@ -132,12 +132,81 @@ WHERE tracker_group != 'Public';
 ## Project Structure
 
 ```
-├── collector.py        # Main collector application
+├── collector/
+│   ├── __init__.py     # Package init
+│   ├── __main__.py     # Entry point; collection loop
+│   ├── config.py       # Environment variable configuration
+│   ├── utils.py        # Tracker classification, state normalization
+│   ├── qbittorrent.py  # qBittorrent HTTP API client
+│   ├── database.py     # PostgreSQL connection and queries
+│   ├── trackers.py     # Tracker refresh and upsert logic
+│   ├── torrent.py      # Core torrent processing
+│   └── collector.py    # Collection orchestration
+├── tests/              # Pytest unit tests
+│   ├── conftest.py     # Shared fixtures
+│   ├── test_utils.py   # Utility function tests
+│   ├── test_config.py  # Configuration tests
+│   ├── test_qbittorrent.py  # API client tests
+│   ├── test_database.py     # Database query tests
+│   ├── test_trackers.py     # Tracker logic tests
+│   ├── test_torrent.py      # Torrent processing tests
+│   └── test_collector.py    # Collection cycle tests
+├── Makefile            # Build and development targets
 ├── schema.sql          # Database schema and views
 ├── Dockerfile          # Container build instructions
 ├── docker-compose.yml  # Deployment configuration
 └── README.md           # This file
 ```
+
+## Development Setup
+
+On a fresh checkout, create and activate a virtual environment before running tests or other Makefile targets:
+
+```bash
+# Create the virtual environment
+python3 -m venv .venv
+
+# Activate it
+source .venv/bin/activate
+
+# Install dependencies
+pip install requests psycopg[binary] pytest pytest-cov
+```
+
+Your shell prompt will change to show `(.venv)`, indicating the environment is active. Now `make test` and other targets will work correctly.
+
+To deactivate the environment when done:
+
+```bash
+deactivate
+```
+
+The `.venv/` directory is already listed in `.gitignore` and should not be committed.
+
+## Testing
+
+The project uses **pytest** for unit testing. All external dependencies (qBittorrent API, PostgreSQL) are mocked, so tests run without any running services.
+
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage report
+make test-cov
+```
+
+## Makefile Targets
+
+| Target | Description |
+|---|---|
+| `make test` | Run all unit tests |
+| `make test-cov` | Run tests with coverage report |
+| `make lint` | Check Python syntax |
+| `make build` | Build the Docker image |
+| `make run` | Start the container via docker-compose |
+| `make stop` | Stop the running container |
+| `make clean` | Remove build artifacts and cache |
+| `make help` | List all available targets |
 
 ## Tracker Classification
 
@@ -152,7 +221,7 @@ Trackers are classified based on their announce URL:
 
 Pseudo-trackers like `[DHT]` and `[PeX]` are ignored.
 
-To add custom tracker classifications, edit the `tracker_group_for_url()` function in `collector.py`.
+To add custom tracker classifications, edit the `tracker_group_for_url()` function in `collector/utils.py`.
 
 ## License
 
